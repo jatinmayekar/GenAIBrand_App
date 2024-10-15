@@ -35,6 +35,9 @@ if "calendar_month" not in st.session_state:
 if "calendar_year" not in st.session_state:
     st.session_state.calendar_year = datetime.now().year
 
+if "selected_date" not in st.session_state:
+    st.session_state.selected_date = None  # No date is selected by default
+
 # Create a placeholder for the calendar
 calendar_placeholder = st.empty()
 
@@ -62,13 +65,22 @@ def display_calendar():
                 if day == 0:
                     col[idx].write("")  # Empty days
                 else:
+                    date_str = f"{year}-{month:02d}-{day:02d}"
                     event = st.session_state.events.get(f"{year}-{month:02d}-{day:02d}", "")
                     display_text = f"{day}"
                     if event:
                         display_text += " •"  # Add a dot for each event
-                    col[idx].write(display_text)
+                    #col[idx].write(display_text)
+                    if col[idx].button(display_text):
+                        st.session_state.selected_date = date_str
 
 display_calendar()
+
+# Sidebar to display events of the selected day
+if st.session_state.selected_date:
+    selected_date = st.session_state.selected_date
+    with st.sidebar:
+        st.sidebar.header(f"Events for {selected_date}")
 
 # New function to add events to the calendar
 def addEventToCalendar(event_text, event_date):
