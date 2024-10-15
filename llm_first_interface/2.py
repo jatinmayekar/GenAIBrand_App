@@ -5,6 +5,7 @@ from dateutil.parser import parse as date_parse
 import openai
 from openai import OpenAI
 import json
+import tiktoken
 import os
 from dotenv import load_dotenv
 
@@ -14,8 +15,9 @@ load_dotenv()
 st.title("LLM-First Calendar App")
 
 # Initialize session state for chat and events
+SYSTEM_PROMPT = "You are a calendar app assistant. Assist users in setting events, checking their schedule, planning their year, setting long and short-term reminders, and changing their calendar view (such as specific months and dates). All interactions with the calendar app will be through you, with no other menu or button interfaces available. You have access to multiple functions to help carry out the users actions.\n\n# Steps\n\n1. **Understand User Intent**: Identify the user's request or query regarding their calendar.\n2. **Confirm Details**: Clarify any ambiguous details by asking specific questions.\n3. **Action Execution**: Implement the action needed, such as setting an event or changing the calendar display.\n4. **Provide Feedback**: Inform the user about the action taken and confirm if further assistance is needed.\n\n# Output Format\n\nProvide responses in a clear, concise sentence or paragraph format. Ensure all user interactions and confirmations are easily understandable. - **Graphical Output Priority**: When showing a calendar using the changeCalendarMonthYear function, the graphic will update so must **not** show a text-based version of the calendar - only confirm the change.\n\n# Examples\n\n**Example 1:**\n- **User Input**: \"Set a meeting with [Name] on [Date] at [Time].\"\n- **Output**: \"Scheduled a meeting with [Name] on [Date] at [Time]. Do you need any other assistance?\"\n\n**Example 2:**\n- **User Input**: \"What does my schedule look like for [Date]?\"\n- **Output**: \"On [Date], you have [Event 1] at [Time], [Event 2] at [Time]. Would you like to view another date?\"\n\n**Example 3:**\n- **User Input**: \"Remind me of [Event] in [Timeframe].\"\n- **Output**: \"A reminder for [Event] has been set for [Timeframe]. Is there anything else I can do for you?\"\n\n# Functions\n- **addEventToCalendar**: Add an event to the calendar for the specified date\n- **changeCalendarMonthYear**: Change the displayed calendar month and year.\n\n# Notes\n\n- Always ensure clarity in all calendar actions and confirmations.\n- For complex queries, break down the task into manageable parts to ensure accuracy.\n- Accommodate edge cases such as recurring events or time zone differences by confirming specifics with the user."
 if "messages" not in st.session_state:
-    st.session_state.messages = []
+    st.session_state.messages = [{"role": "system", "content": [{"type": "text", "text": SYSTEM_PROMPT}]}]
 
 if "events" not in st.session_state:
     st.session_state.events = {}
@@ -81,60 +83,72 @@ def changeCalendarMonthYear(month, year):
     display_calendar()  # Refresh the calendar with the new month and year
     return True
 
+# Define a max token limit
+MAX_TOKENS = 128000  # GPT-4o supports 128k tokens - context window
+MAX_OUTPUT_TOKENS = 4096  # Reserve tokens for the response - output tokens or completion tokens
+TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "addEventToCalendar",
+            "description": "Add an event to the calendar for the specified date.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "event_text": {"type": "string", "description": "The event description"},
+                    "event_date": {"type": "string", "description": "The date of the event in YYYY-MM-DD format"},
+                },
+                "required": ["event_text", "event_date"],
+                "additionalProperties": False,
+            },
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "changeCalendarMonthYear",
+            "description": "Change the displayed calendar month and year.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "month": {"type": "integer", "description": "The new month number (1-12)"},
+                    "year": {"type": "integer", "description": "The new year"},
+                },
+                "required": ["month", "year"],
+                "additionalProperties": False,
+            },
+        }
+    }
+]
+
+# Define a function to count tokens for conversation history
+def num_tokens_from_messages(messages, model="gpt-4o"):
+    encoding = tiktoken.encoding_for_model(model)
+    num_tokens = 0
+    for message in messages:
+        num_tokens += 4  # every message follows <im_start>{role/name}\n{content}<im_end>\n
+        for key, value in message.items():
+            num_tokens += len(encoding.encode(value))
+            if key == "name":  # if there's a name, the role is omitted
+                num_tokens += -1  # role is always required and always 1 token
+    num_tokens += 2  # every reply is primed with <im_start>assistant
+    return num_tokens
+
+# Ensure conversation history stays within the token limit
+def ensure_token_limit(messages, model="gpt-4o"):
+    token_count = num_tokens_from_messages(messages, model)
+    while token_count > MAX_TOKENS - MAX_OUTPUT_TOKENS:
+        messages.pop(0)  # Remove the oldest message
+        token_count = num_tokens_from_messages(messages, model)
+    return messages
+
 # Chatbot interaction
 def getOpenAiResponse(prompt):
-    tools = [
-        {
-            "type": "function",
-            "function": {
-                "name": "addEventToCalendar",
-                "description": "Add an event to the calendar for the specified date.",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "event_text": {"type": "string", "description": "The event description"},
-                        "event_date": {"type": "string", "description": "The date of the event in YYYY-MM-DD format"},
-                    },
-                    "required": ["event_text", "event_date"],
-                    "additionalProperties": False,
-                },
-            }
-        },
-        {
-            "type": "function",
-            "function": {
-                "name": "changeCalendarMonthYear",
-                "description": "Change the displayed calendar month and year.",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "month": {"type": "integer", "description": "The new month number (1-12)"},
-                        "year": {"type": "integer", "description": "The new year"},
-                    },
-                    "required": ["month", "year"],
-                    "additionalProperties": False,
-                },
-            }
-        }
-    ]
-
     response = st.session_state.clientOpenAI.chat.completions.create(
-        messages=[{
-                    "role": "system",
-                    "content": [
-                        {
-                        "type": "text",
-                        "text": "You are a calendar app assistant. Assist users in setting events, checking their schedule, planning their year, setting long and short-term reminders, and changing their calendar view (such as specific months and dates). All interactions with the calendar app will be through you, with no other menu or button interfaces available. You have access to multiple functions to help carry out the users actions.\n\n# Steps\n\n1. **Understand User Intent**: Identify the user's request or query regarding their calendar.\n2. **Confirm Details**: Clarify any ambiguous details by asking specific questions.\n3. **Action Execution**: Implement the action needed, such as setting an event or changing the calendar display.\n4. **Provide Feedback**: Inform the user about the action taken and confirm if further assistance is needed.\n\n# Output Format\n\nProvide responses in a clear, concise sentence or paragraph format. Ensure all user interactions and confirmations are easily understandable. - **Graphical Output Priority**: When showing a calendar using the changeCalendarMonthYear function, the graphic will update so must **not** show a text-based version of the calendar - only confirm the change.\n\n# Examples\n\n**Example 1:**\n- **User Input**: \"Set a meeting with [Name] on [Date] at [Time].\"\n- **Output**: \"Scheduled a meeting with [Name] on [Date] at [Time]. Do you need any other assistance?\"\n\n**Example 2:**\n- **User Input**: \"What does my schedule look like for [Date]?\"\n- **Output**: \"On [Date], you have [Event 1] at [Time], [Event 2] at [Time]. Would you like to view another date?\"\n\n**Example 3:**\n- **User Input**: \"Remind me of [Event] in [Timeframe].\"\n- **Output**: \"A reminder for [Event] has been set for [Timeframe]. Is there anything else I can do for you?\"\n\n# Functions\n- **addEventToCalendar**: Add an event to the calendar for the specified date\n- **changeCalendarMonthYear**: Change the displayed calendar month and year.\n\n# Notes\n\n- Always ensure clarity in all calendar actions and confirmations.\n- For complex queries, break down the task into manageable parts to ensure accuracy.\n- Accommodate edge cases such as recurring events or time zone differences by confirming specifics with the user."
-                        }
-                    ]
-                },
-                {
-                    "role": "user",
-                    "content": prompt,
-                }],
+        messages=st.session_state.messages,
         model=st.session_state.modelName,
-        max_tokens=200,
-        tools=tools,
+        max_tokens=MAX_OUTPUT_TOKENS,
+        tools=TOOLS,
     )
     print(response)
     
