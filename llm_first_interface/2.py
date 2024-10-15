@@ -26,21 +26,27 @@ if "client" not in st.session_state:
 if "modelName" not in st.session_state:
     st.session_state.modelName = "gpt-4o"
 
+# Initialize month and year in session state
+if "calendar_month" not in st.session_state:
+    st.session_state.calendar_month = datetime.now().month
+
+if "calendar_year" not in st.session_state:
+    st.session_state.calendar_year = datetime.now().year
+
 # Create a placeholder for the calendar
 calendar_placeholder = st.empty()
 
 # Helper function to display a simple calendar grid
 def display_calendar():
-    now = datetime.now()
-    month = now.month
-    year = now.year
+    month = st.session_state.calendar_month
+    year = st.session_state.calendar_year
 
     cal = calendar.monthcalendar(year, month)
     days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
     # Update the placeholder with the calendar content
     with calendar_placeholder.container():
-        st.subheader(f"📅 {now.strftime('%B %Y')}")
+        st.subheader(f"📅 {datetime(year, month, 1).strftime('%B %Y')}")
         col = st.columns(7)
         
         # Display day headers
@@ -68,6 +74,13 @@ def addEventToCalendar(event_text, event_date):
     display_calendar()
     return True
 
+# New function to change the calendar month and year
+def changeCalendarMonthYear(month, year):
+    st.session_state.calendar_month = month
+    st.session_state.calendar_year = year
+    display_calendar()  # Refresh the calendar with the new month and year
+    return True
+
 # Chatbot interaction
 def getOpenAiResponse(prompt):
     tools = [
@@ -83,6 +96,22 @@ def getOpenAiResponse(prompt):
                         "event_date": {"type": "string", "description": "The date of the event in YYYY-MM-DD format"},
                     },
                     "required": ["event_text", "event_date"],
+                    "additionalProperties": False,
+                },
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "changeCalendarMonthYear",
+                "description": "Change the displayed calendar month and year.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "month": {"type": "integer", "description": "The new month number (1-12)"},
+                        "year": {"type": "integer", "description": "The new year"},
+                    },
+                    "required": ["month", "year"],
                     "additionalProperties": False,
                 },
             }
@@ -104,21 +133,33 @@ def getOpenAiResponse(prompt):
         tool_call = response.choices[0].message.tool_calls[0]
         functionName = tool_call.function.name
         functionArguments = json.loads(tool_call.function.arguments)
-        event_text = functionArguments["event_text"]
-        event_date = functionArguments["event_date"]
         
         if functionName == 'addEventToCalendar':
+            event_text = functionArguments["event_text"]
+            event_date = functionArguments["event_date"]
             functionResult = addEventToCalendar(event_text, event_date)
-
-        function_call_result_message = {
-            "role": "tool",
-            "content": json.dumps({
-                "event_text": event_text,
-                "event_date": event_date,
-                "functionCallResult": functionResult
-            }),
-            "tool_call_id": tool_call.id
-        }
+            function_call_result_message = {
+                "role": "tool",
+                "content": json.dumps({
+                    "event_text": event_text,
+                    "event_date": event_date,
+                    "functionCallResult": functionResult
+                }),
+                "tool_call_id": tool_call.id
+            }
+        elif functionName == 'changeCalendarMonthYear':
+            month = functionArguments["month"]
+            year = functionArguments["year"]
+            functionResult = changeCalendarMonthYear(month, year)
+            function_call_result_message = {
+                "role": "tool",
+                "content": json.dumps({
+                    "month": month,
+                    "year": year,
+                    "functionCallResult": functionResult
+                }),
+                "tool_call_id": tool_call.id
+            }
 
         messageHistory = st.session_state.messages + [
             response.choices[0].message,
