@@ -57,6 +57,8 @@ if "selected_date" not in st.session_state:
 # Create a placeholder for the calendar
 calendar_placeholder = st.empty()
 
+calendar_update = False
+
 # Function to get events for a specific month
 def get_events_for_month(year, month):
     start_date = f"{year}-{month:02d}-01"
@@ -92,7 +94,7 @@ def addEvent(date, time, description, recurring="False", recurringfreqinterval="
 
         st.success(f"Event '{description}' added successfully on {date} at {time}")
         #display_calendar()  # Refresh the calendar
-        st.rerun()
+        #st.rerun()
         return True
     except Exception as e:
         st.error(f"Error adding event: {str(e)}")
@@ -253,7 +255,7 @@ def getOpenAiResponse(prompt):
             #ai_summary = functionArguments.get("ai_summary")
 
             functionResult = addEvent(date, time, description, recurring, recurringfreqinterval, recurringfreqenddate)
-
+            calendar_update = functionResult
             function_call_result_message = {
                 "role": "tool",
                 "content": json.dumps({
@@ -268,7 +270,7 @@ def getOpenAiResponse(prompt):
             month = functionArguments["month"]
             year = functionArguments["year"]
             functionResult = changeCalendarMonthYear(month, year)
-
+            calendar_update = functionResult
             function_call_result_message = {
                 "role": "tool",
                 "content": json.dumps({
@@ -304,28 +306,29 @@ def getOpenAiResponse(prompt):
         )
     return response
 
-# Display chat history
-for message in st.session_state.messages[1:]:
-    with st.chat_message(name=message["role"]):
-        st.write(message["content"])
+last_user_index = None
+for i, message in enumerate(reversed(st.session_state.messages)):
+    if message["role"] == "user":
+        last_user_index = len(st.session_state.messages) - 1 - i
+        break
 
-# last_user_index = None
-# for i, message in enumerate(reversed(st.session_state.messages)):
-#     if message["role"] == "user":
-#         last_user_index = len(st.session_state.messages) - 1 - i
-#         break
-
-# if last_user_index is not None:
-#     # Display the last user message
-#     with st.chat_message(name="user"):
-#         st.write(st.session_state.messages[last_user_index]["content"])
+if last_user_index is not None:
+    # Display the last user message
+    with st.chat_message(name="user"):
+        st.write(st.session_state.messages[last_user_index]["content"])
     
-#     # Display the assistant's response (if it exists)
-#     if last_user_index + 1 < len(st.session_state.messages):
-#         with st.chat_message(name="assistant"):
-#             st.write(st.session_state.messages[last_user_index + 1]["content"])
+    # Display the assistant's response (if it exists)
+    if last_user_index + 1 < len(st.session_state.messages):
+        with st.chat_message(name="assistant"):
+            st.write(st.session_state.messages[last_user_index + 1]["content"])
 
 # Chat input for interacting with the calendar
+
+    # Display chat history
+    # for message in st.session_state.messages[1:]:
+    #     with st.chat_message(name=message["role"]):
+    #         st.write(message["content"])
+
 input_text = st.chat_input("Calendar for you... how can I help?")
 if input_text:
     with st.chat_message(name="user"):
@@ -337,3 +340,5 @@ if input_text:
         output = assistantResponse.choices[0].message.content
         st.write(output)
         st.session_state.messages.append({"role": "assistant", "content":output})
+        st.rerun()
+            
