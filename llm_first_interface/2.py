@@ -1,5 +1,6 @@
 import streamlit as st
 from datetime import datetime
+from pyairtable import Api
 import calendar
 from dateutil.parser import parse as date_parse
 import openai
@@ -14,13 +15,27 @@ load_dotenv()
 
 st.title("LLM-First Calendar App")
 
+# Airtable configuration
+AIRTABLE_API_KEY = os.getenv('AIRTABLE_API_KEY')
+BASE_ID = os.getenv('AIRTABLE_BASE_ID')
+EVENTS_TABLE_NAME = "CalendarEvents"
+
+# Connect to Airtable tables
+api = Api(AIRTABLE_API_KEY)  # Instantiate Api with API key
+events_table = api.table(BASE_ID, EVENTS_TABLE_NAME)  # Connect to the events table
+
 # Initialize session state for chat and events
 SYSTEM_PROMPT = "You are a calendar app assistant. Assist users in setting events, checking their schedule, planning their year, setting long and short-term reminders, and changing their calendar view (such as specific months and dates). All interactions with the calendar app will be through you, with no other menu or button interfaces available. You have access to multiple functions to help carry out the users actions.\n\n# Steps\n\n1. **Understand User Intent**: Identify the user's request or query regarding their calendar.\n2. **Confirm Details**: Clarify any ambiguous details by asking specific questions.\n3. **Action Execution**: Implement the action needed, such as setting an event or changing the calendar display.\n4. **Provide Feedback**: Inform the user about the action taken and confirm if further assistance is needed.\n\n# Output Format\n\nProvide responses in a clear, concise sentence or paragraph format. Ensure all user interactions and confirmations are easily understandable. - **Graphical Output Priority**: When showing a calendar using the changeCalendarMonthYear function, the graphic will update so must **not** show a text-based version of the calendar - only confirm the change.\n\n# Examples\n\n**Example 1:**\n- **User Input**: \"Set a meeting with [Name] on [Date] at [Time].\"\n- **Output**: \"Scheduled a meeting with [Name] on [Date] at [Time]. Do you need any other assistance?\"\n\n**Example 2:**\n- **User Input**: \"What does my schedule look like for [Date]?\"\n- **Output**: \"On [Date], you have [Event 1] at [Time], [Event 2] at [Time]. Would you like to view another date?\"\n\n**Example 3:**\n- **User Input**: \"Remind me of [Event] in [Timeframe].\"\n- **Output**: \"A reminder for [Event] has been set for [Timeframe]. Is there anything else I can do for you?\"\n\n# Functions\n- **addEventToCalendar**: Add an event to the calendar for the specified date\n- **changeCalendarMonthYear**: Change the displayed calendar month and year.\n\n# Notes\n\n- Always ensure clarity in all calendar actions and confirmations.\n- For complex queries, break down the task into manageable parts to ensure accuracy.\n- Accommodate edge cases such as recurring events or time zone differences by confirming specifics with the user."
+
 if "messages" not in st.session_state:
     st.session_state.messages = [{"role": "system", "content": [{"type": "text", "text": SYSTEM_PROMPT}]}]
 
-if "events" not in st.session_state:
-    st.session_state.events = {}
+# Remove this line as events will be stored in Airtable
+# if "events" not in st.session_state:
+#     st.session_state.events = {}
+
+if "buttons" not in st.session_state:
+    st.session_state.buttons = {}  # Track button state for each day
 
 if "client" not in st.session_state:
     st.session_state.clientOpenAI = OpenAI(api_key=os.getenv('OPEN_AI_APIKEY'))
@@ -41,52 +56,18 @@ if "selected_date" not in st.session_state:
 # Create a placeholder for the calendar
 calendar_placeholder = st.empty()
 
-# Helper function to display a simple calendar grid
-def display_calendar():
-    month = st.session_state.calendar_month
-    year = st.session_state.calendar_year
-
-    cal = calendar.monthcalendar(year, month)
-    days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-
-    # Update the placeholder with the calendar content
-    with calendar_placeholder.container():
-        st.subheader(f"📅 {datetime(year, month, 1).strftime('%B %Y')}")
-        col = st.columns(7)
-        
-        # Display day headers
-        for idx, day in enumerate(days):
-            col[idx].write(f"**{day}**")
-        
-        # Display calendar days
-        for week in cal:
-            col = st.columns(7)
-            for idx, day in enumerate(week):
-                if day == 0:
-                    col[idx].write("")  # Empty days
-                else:
-                    date_str = f"{year}-{month:02d}-{day:02d}"
-                    event = st.session_state.events.get(f"{year}-{month:02d}-{day:02d}", "")
-                    display_text = f"{day}"
-                    if event:
-                        display_text += " •"  # Add a dot for each event
-                    #col[idx].write(display_text)
-                    if col[idx].button(display_text):
-                        st.session_state.selected_date = date_str
-
-display_calendar()
-
-# Sidebar to display events of the selected day
-if st.session_state.selected_date:
-    selected_date = st.session_state.selected_date
-    with st.sidebar:
-        st.sidebar.header(f"Events for {selected_date}")
-
 # New function to add events to the calendar
-def addEventToCalendar(event_text, event_date):
-    st.session_state.events[event_date] = event_text
-    display_calendar()
-    return True
+# def addEventToCalendar(event_text, event_date):
+#     st.session_state.events[event_date] = event_text
+#     display_calendar()
+#     return True
+
+# Function to get events for a specific month
+def get_events_for_month(year, month):
+    start_date = f"{year}-{month:02d}-01"
+    end_date = f"{year}-{month:02d}-{calendar.monthrange(year, month)[1]:02d}"
+    events = events_table.all(formula=f"AND({{Event Date}} >= '{start_date}', {{Event Date}} <= '{end_date}')")
+    return {event['fields']['Event Date']: event['fields'] for event in events}
 
 # New function to change the calendar month and year
 def changeCalendarMonthYear(month, year):
@@ -95,6 +76,93 @@ def changeCalendarMonthYear(month, year):
     display_calendar()  # Refresh the calendar with the new month and year
     return True
 
+def addEvent(date, time, description, recurring="False", recurringfreqinterval="None", recurringfreqenddate="None"):
+    ai_summary="ai summary here"
+    try:
+        # Insert event into Airtable
+        events_table.create({
+            "Event Date": date,
+            "Event Time": time,
+            "Description": description,
+            "Recurring": recurring,
+            "Recurring Interval": recurringfreqinterval,
+            "Recurring End Date": recurringfreqenddate,
+            "AI Summary": ai_summary
+        })
+
+        # Update the button display for that date
+        if date in st.session_state.buttons:
+            st.session_state.buttons[date] = f"{date[-2:]} • {len(st.session_state.events[date])} events"
+
+        st.success(f"Event '{description}' added successfully on {date} at {time}")
+        display_calendar()  # Refresh the calendar
+        return True
+    except Exception as e:
+        st.error(f"Error adding event: {str(e)}")
+        return False
+
+def get_events_for_month(year, month):
+    start_date = f"{year}-{month:02d}-01"
+    end_date = f"{year}-{month:02d}-{calendar.monthrange(year, month)[1]:02d}"
+    events = events_table.all(formula=f"AND({{Event Date}} >= '{start_date}', {{Event Date}} <= '{end_date}')")
+    
+    # Group events by date
+    events_by_date = {}
+    for event in events:
+        date = event['fields']['Event Date']
+        if date not in events_by_date:
+            events_by_date[date] = []
+        events_by_date[date].append(event['fields'])
+    
+    return events_by_date
+
+def display_calendar():
+    month = st.session_state.calendar_month
+    year = st.session_state.calendar_year
+
+    # Fetch events for the entire month
+    month_events = get_events_for_month(year, month)
+
+    cal = calendar.monthcalendar(year, month)
+    days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
+    st.subheader(f"📅 {datetime(year, month, 1).strftime('%B %Y')}")
+    
+    # Display day headers
+    cols = st.columns(7)
+    for idx, day in enumerate(days):
+        cols[idx].write(f"**{day}**")
+
+    # Display calendar days
+    for week in cal:
+        cols = st.columns(7)
+        for idx, day in enumerate(week):
+            if day != 0:
+                date_str = f"{year}-{month:02d}-{day:02d}"
+                event_count = len(month_events.get(date_str, []))
+                display_text = f"{day}" if event_count == 0 else f"{day} • {event_count}"
+                
+                # Use a unique key for each button
+                button_key = f"btn_{date_str}"
+                
+                if cols[idx].button(display_text, key=button_key):
+                    st.session_state.selected_date = date_str
+                    st.rerun()
+
+display_calendar()
+
+# Sidebar to display events of the selected date
+if st.session_state.selected_date:
+    with st.sidebar:
+        st.sidebar.header(f"Events for {st.session_state.selected_date}")
+        events_for_day = events_table.all(formula=f"{{Event Date}} = '{st.session_state.selected_date}'")
+        if events_for_day:
+            for event in events_for_day:
+                fields = event['fields']
+                st.sidebar.write(f"- {fields.get('Event Time', 'No Time')}: {fields.get('Description', 'No Description')}")
+        else:
+            st.sidebar.write("No events for this date")
+
 # Define a max token limit
 MAX_TOKENS = 128000  # GPT-4o supports 128k tokens - context window
 MAX_OUTPUT_TOKENS = 4096  # Reserve tokens for the response - output tokens or completion tokens
@@ -102,17 +170,20 @@ TOOLS = [
     {
         "type": "function",
         "function": {
-            "name": "addEventToCalendar",
-            "description": "Add an event to the calendar for the specified date.",
+            "name": "addEvent",
+            "description": "Add an event with all details including AI summary and recurring options.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "event_text": {"type": "string", "description": "The event description"},
-                    "event_date": {"type": "string", "description": "The date of the event in YYYY-MM-DD format"},
+                    "date": {"type": "string", "description": "The date of the event (YYYY-MM-DD)"},
+                    "time": {"type": "string", "description": "The time of the event (HH:MM)"},
+                    "description": {"type": "string", "description": "Event description"},
+                    "recurring": {"type": "string", "description": "Is the event recurring?", "default": "False"},
+                    "recurringfreqinterval": {"type": "string", "description": "Interval for recurrence", "default": "None"},
+                    "recurringfreqenddate": {"type": "string", "description": "End date for recurrence", "default": "None"},
                 },
-                "required": ["event_text", "event_date"],
-                "additionalProperties": False,
-            },
+                "required": ["date", "time", "description", "recurring", "recurringfreqinterval", "recurringfreqenddate"]
+            }
         }
     },
     {
@@ -169,15 +240,24 @@ def getOpenAiResponse(prompt):
         functionName = tool_call.function.name
         functionArguments = json.loads(tool_call.function.arguments)
         
-        if functionName == 'addEventToCalendar':
-            event_text = functionArguments["event_text"]
-            event_date = functionArguments["event_date"]
-            functionResult = addEventToCalendar(event_text, event_date)
+        if functionName == 'addEvent':
+            # Extract arguments with defaults
+            date = functionArguments.get("date")
+            time = functionArguments.get("time")
+            description = functionArguments.get("description")
+            recurring = functionArguments.get("recurringfreq", "False")
+            recurringfreqinterval = functionArguments.get("recurringfreqinterval")
+            recurringfreqenddate = functionArguments.get("recurringfreqenddate")
+            #ai_summary = functionArguments.get("ai_summary")
+
+            functionResult = addEvent(date, time, description, recurring, recurringfreqinterval, recurringfreqenddate)
+
             function_call_result_message = {
                 "role": "tool",
                 "content": json.dumps({
-                    "event_text": event_text,
-                    "event_date": event_date,
+                    "date": date,
+                    "time": time,
+                    "description": description,
                     "functionCallResult": functionResult
                 }),
                 "tool_call_id": tool_call.id
