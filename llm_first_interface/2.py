@@ -9,6 +9,8 @@ import json
 import tiktoken
 import time
 import uuid
+from streamlit_mic_recorder import mic_recorder
+import io
 import os
 from dotenv import load_dotenv
 
@@ -79,7 +81,7 @@ if "buttons" not in st.session_state:
     st.session_state.buttons = {}  # Track button state for each day
 
 if "client" not in st.session_state:
-    st.session_state.clientOpenAI = OpenAI(api_key=os.getenv('OPEN_AI_APIKEY'))
+    st.session_state.clientOpenAI = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
 if "modelName" not in st.session_state:
     st.session_state.modelName = "gpt-4-turbo"
@@ -93,6 +95,56 @@ if "calendar_year" not in st.session_state:
 
 if "selected_date" not in st.session_state:
     st.session_state.selected_date = None  # No date is selected by default
+
+def whisper_stt(openai_api_key=None, start_prompt="Start recording", stop_prompt="Stop recording", just_once=False,
+               use_container_width=False, language=None, callback=None, args=(), kwargs=None, key=None):
+    if not 'openai_client' in st.session_state:
+        st.session_state.openai_client = OpenAI(api_key=openai_api_key or os.getenv('OPENAI_API_KEY'))
+    if not '_last_speech_to_text_transcript_id' in st.session_state:
+        st.session_state._last_speech_to_text_transcript_id = 0
+    if not '_last_speech_to_text_transcript' in st.session_state:
+        st.session_state._last_speech_to_text_transcript = None
+    if key and not key + '_output' in st.session_state:
+        st.session_state[key + '_output'] = None
+    audio = mic_recorder(start_prompt=start_prompt, stop_prompt=stop_prompt, just_once=just_once,
+                         use_container_width=use_container_width,format="webm", key=key)
+    new_output = False
+    if audio is None:
+        output = None
+    else:
+        id = audio['id']
+        new_output = (id > st.session_state._last_speech_to_text_transcript_id)
+        if new_output:
+            output = None
+            st.session_state._last_speech_to_text_transcript_id = id
+            audio_bio = io.BytesIO(audio['bytes'])
+            audio_bio.name = 'audio.webm'
+            success = False
+            err = 0
+            while not success and err < 3:  # Retry up to 3 times in case of OpenAI server error.
+                try:
+                    transcript = st.session_state.openai_client.audio.transcriptions.create(
+                        model="whisper-1",
+                        file=audio_bio,
+                        language=language
+                    )
+                except Exception as e:
+                    print(str(e))  # log the exception in the terminal
+                    err += 1
+                else:
+                    success = True
+                    output = transcript.text
+                    st.session_state._last_speech_to_text_transcript = output
+        elif not just_once:
+            output = st.session_state._last_speech_to_text_transcript
+        else:
+            output = None
+
+    if key:
+        st.session_state[key + '_output'] = output
+    if new_output and callback:
+        callback(*args, **(kwargs or {}))
+    return output
 
 # Create a placeholder for the calendar
 calendar_placeholder = st.empty()
@@ -509,17 +561,28 @@ if last_user_index is not None:
     #     with st.chat_message(name=message["role"]):
     #         st.write(message["content"])
 
-input_text = st.chat_input("Calendar for you... how can I help?")
-if input_text:
+# Function to handle user input (text or speech)
+def handle_user_input():
+    text_input = st.chat_input("Type your query here...")
+    speech_input = whisper_stt(openai_api_key=os.getenv('OPENAI_API_KEY'), language='en')
+
+    if text_input:
+        return text_input
+    elif speech_input:
+        return speech_input
+    else:
+        return None
+
+# Main loop for chat interface
+user_input = handle_user_input()
+if user_input:
     with st.chat_message(name="user"):
-        st.write(input_text)
-        st.session_state.messages.append({"role": "user", "content": input_text})
+        st.write(user_input)
+        st.session_state.messages.append({"role": "user", "content": user_input})
     
     with st.chat_message(name="assistant"):
-        assistantResponse = getOpenAiResponse(input_text)
-        #output = assistantResponse.choices[0].message.content
-        output = assistantResponse
-        st.write(output)
-        st.session_state.messages.append({"role": "assistant", "content":output})
+        assistant_response = getOpenAiResponse(user_input)
+        st.write(assistant_response)
+        st.session_state.messages.append({"role": "assistant", "content": assistant_response})
         st.rerun()
             

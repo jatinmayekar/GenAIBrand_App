@@ -45,7 +45,7 @@ if "totalCost" not in st.session_state:
     st.session_state.totalCost = 0
 
 if "client" not in st.session_state:
-    st.session_state.clientOpenAI = OpenAI(api_key=os.getenv('OPEN_AI_APIKEY'))
+    st.session_state.clientOpenAI = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
 def getOpenAiResponse(prompt):
         tools = [
