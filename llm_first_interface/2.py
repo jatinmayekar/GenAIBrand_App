@@ -7,6 +7,7 @@ import openai
 from openai import OpenAI
 import json
 import tiktoken
+import uuid
 import os
 from dotenv import load_dotenv
 
@@ -56,12 +57,6 @@ if "selected_date" not in st.session_state:
 # Create a placeholder for the calendar
 calendar_placeholder = st.empty()
 
-# New function to add events to the calendar
-# def addEventToCalendar(event_text, event_date):
-#     st.session_state.events[event_date] = event_text
-#     display_calendar()
-#     return True
-
 # Function to get events for a specific month
 def get_events_for_month(year, month):
     start_date = f"{year}-{month:02d}-01"
@@ -73,7 +68,8 @@ def get_events_for_month(year, month):
 def changeCalendarMonthYear(month, year):
     st.session_state.calendar_month = month
     st.session_state.calendar_year = year
-    display_calendar()  # Refresh the calendar with the new month and year
+    #display_calendar()  # Refresh the calendar with the new month and year
+    st.rerun()
     return True
 
 def addEvent(date, time, description, recurring="False", recurringfreqinterval="None", recurringfreqenddate="None"):
@@ -95,7 +91,8 @@ def addEvent(date, time, description, recurring="False", recurringfreqinterval="
             st.session_state.buttons[date] = f"{date[-2:]} • {len(st.session_state.events[date])} events"
 
         st.success(f"Event '{description}' added successfully on {date} at {time}")
-        display_calendar()  # Refresh the calendar
+        #display_calendar()  # Refresh the calendar
+        st.rerun()
         return True
     except Exception as e:
         st.error(f"Error adding event: {str(e)}")
@@ -115,6 +112,9 @@ def get_events_for_month(year, month):
         events_by_date[date].append(event['fields'])
     
     return events_by_date
+
+def create_unique_key(base_key):
+    return f"{base_key}_{uuid.uuid4().hex}"
 
 def display_calendar():
     month = st.session_state.calendar_month
@@ -144,16 +144,16 @@ def display_calendar():
                 
                 # Use a unique key for each button
                 button_key = f"btn_{date_str}"
+                unique_key = create_unique_key(button_key)
                 
-                if cols[idx].button(display_text, key=button_key):
-                    st.session_state.selected_date = date_str
-                    st.rerun()
+                if cols[idx].button(display_text, key=unique_key, help=f"Select {date_str}", on_click=lambda d=date_str: setattr(st.session_state, 'selected_date', d)):
+                    pass  # The on_click handler will update the state
 
 display_calendar()
 
 # Sidebar to display events of the selected date
-if st.session_state.selected_date:
-    with st.sidebar:
+with st.sidebar:
+    if st.session_state.selected_date:
         st.sidebar.header(f"Events for {st.session_state.selected_date}")
         events_for_day = events_table.all(formula=f"{{Event Date}} = '{st.session_state.selected_date}'")
         if events_for_day:
@@ -162,6 +162,8 @@ if st.session_state.selected_date:
                 st.sidebar.write(f"- {fields.get('Event Time', 'No Time')}: {fields.get('Description', 'No Description')}")
         else:
             st.sidebar.write("No events for this date")
+    else:
+        st.sidebar.write("Select a date to view events")
 
 # Define a max token limit
 MAX_TOKENS = 128000  # GPT-4o supports 128k tokens - context window
@@ -266,12 +268,21 @@ def getOpenAiResponse(prompt):
             month = functionArguments["month"]
             year = functionArguments["year"]
             functionResult = changeCalendarMonthYear(month, year)
+
             function_call_result_message = {
                 "role": "tool",
                 "content": json.dumps({
                     "month": month,
                     "year": year,
                     "functionCallResult": functionResult
+                }),
+                "tool_call_id": tool_call.id
+            }
+        else:
+            function_call_result_message = {
+                "role": "tool",
+                "content": json.dumps({
+                    "functionCallResult": "tool name not registered in tool list for a corresponding function call"
                 }),
                 "tool_call_id": tool_call.id
             }
@@ -294,9 +305,25 @@ def getOpenAiResponse(prompt):
     return response
 
 # Display chat history
-# for message in st.session_state.messages:
-#     with st.chat_message(name=message["role"]):
-#         st.write(message["content"])
+for message in st.session_state.messages[1:]:
+    with st.chat_message(name=message["role"]):
+        st.write(message["content"])
+
+# last_user_index = None
+# for i, message in enumerate(reversed(st.session_state.messages)):
+#     if message["role"] == "user":
+#         last_user_index = len(st.session_state.messages) - 1 - i
+#         break
+
+# if last_user_index is not None:
+#     # Display the last user message
+#     with st.chat_message(name="user"):
+#         st.write(st.session_state.messages[last_user_index]["content"])
+    
+#     # Display the assistant's response (if it exists)
+#     if last_user_index + 1 < len(st.session_state.messages):
+#         with st.chat_message(name="assistant"):
+#             st.write(st.session_state.messages[last_user_index + 1]["content"])
 
 # Chat input for interacting with the calendar
 input_text = st.chat_input("Calendar for you... how can I help?")
