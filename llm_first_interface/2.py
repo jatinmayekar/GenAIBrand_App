@@ -564,12 +564,12 @@ if last_user_index is not None:
 # Function to handle user input (text or speech)
 def handle_user_input():
     text_input = st.chat_input("Type your query here...")
-    speech_input = whisper_stt(openai_api_key=os.getenv('OPENAI_API_KEY'), language='en')
+    #speech_input = whisper_stt(openai_api_key=os.getenv('OPENAI_API_KEY'), language='en')
 
     if text_input:
         return text_input
-    elif speech_input:
-        return speech_input
+    # elif speech_input:
+    #     return speech_input
     else:
         return None
 

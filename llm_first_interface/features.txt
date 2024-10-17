@@ -1,0 +1,6 @@
+1. fix aduio feature - audio buttons should show during all the convo and run only once
+2. add update and delete functions
+3. add ai summary function for dates and functions to get ai summaries for any number of dates
+4. add user sign in and account creation
+5. add a way to detect the date clicked so the ai can respond directly based on the date click to show the events in sidebar and tell the user abt the day
+6. test if the ai can make muliplt events for long running tasks or complicated tasks like a few remiinders before the task occurs to make it easy for the user to remember - sort of memory function
