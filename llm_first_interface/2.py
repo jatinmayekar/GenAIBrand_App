@@ -7,6 +7,7 @@ import openai
 from openai import OpenAI
 import json
 import tiktoken
+import time
 import uuid
 import os
 from dotenv import load_dotenv
@@ -26,7 +27,46 @@ api = Api(AIRTABLE_API_KEY)  # Instantiate Api with API key
 events_table = api.table(BASE_ID, EVENTS_TABLE_NAME)  # Connect to the events table
 
 # Initialize session state for chat and events
-SYSTEM_PROMPT = "You are a calendar app assistant. Assist users in setting events, checking their schedule, planning their year, setting long and short-term reminders, and changing their calendar view (such as specific months and dates). All interactions with the calendar app will be through you, with no other menu or button interfaces available. You have access to multiple functions to help carry out the users actions.\n\n# Steps\n\n1. **Understand User Intent**: Identify the user's request or query regarding their calendar.\n2. **Confirm Details**: Clarify any ambiguous details by asking specific questions.\n3. **Action Execution**: Implement the action needed, such as setting an event or changing the calendar display.\n4. **Provide Feedback**: Inform the user about the action taken and confirm if further assistance is needed.\n\n# Output Format\n\nProvide responses in a clear, concise sentence or paragraph format. Ensure all user interactions and confirmations are easily understandable. - **Graphical Output Priority**: When showing a calendar using the changeCalendarMonthYear function, the graphic will update so must **not** show a text-based version of the calendar - only confirm the change.\n\n# Examples\n\n**Example 1:**\n- **User Input**: \"Set a meeting with [Name] on [Date] at [Time].\"\n- **Output**: \"Scheduled a meeting with [Name] on [Date] at [Time]. Do you need any other assistance?\"\n\n**Example 2:**\n- **User Input**: \"What does my schedule look like for [Date]?\"\n- **Output**: \"On [Date], you have [Event 1] at [Time], [Event 2] at [Time]. Would you like to view another date?\"\n\n**Example 3:**\n- **User Input**: \"Remind me of [Event] in [Timeframe].\"\n- **Output**: \"A reminder for [Event] has been set for [Timeframe]. Is there anything else I can do for you?\"\n\n# Functions\n- **addEventToCalendar**: Add an event to the calendar for the specified date\n- **changeCalendarMonthYear**: Change the displayed calendar month and year.\n\n# Notes\n\n- Always ensure clarity in all calendar actions and confirmations.\n- For complex queries, break down the task into manageable parts to ensure accuracy.\n- Accommodate edge cases such as recurring events or time zone differences by confirming specifics with the user."
+SYSTEM_PROMPT = """You are a smart, intuitive calendar app assistant. Help users manage events, check schedules, and navigate the calendar. Use these functions:
+
+- addEvent: Add events to the calendar
+- changeCalendarMonthYear: Change the displayed month/year
+- getCurrentDateTime: Get current date and time
+- getEventsForMonth: Retrieve all events for a specific month
+- getEventsForDate: Retrieve all events for a specific date
+
+Steps:
+1. Understand user intent
+2. Clarify details if needed
+3. Execute actions using appropriate functions (use multiple functions when necessary)
+4. Provide clear feedback
+
+Examples:
+1. User: "Set a meeting with John on May 15th at 2 PM."
+   Action: Use addEvent
+   Response: "Meeting with John scheduled for May 15th at 2 PM. Anything else?"
+
+2. User: "What's my schedule for tomorrow?"
+   Action 1: Use getCurrentDateTime to get today's date
+   Action 2: Calculate tomorrow's date based on the result of getCurrentDateTime
+   Action 3: Use getEventsForDate with the calculated tomorrow's date
+   Response: "For tomorrow, [calculated date], you have: [Event 1] at [Time], [Event 2] at [Time]."
+
+3. User: "Show me next month's calendar."
+   Action 1: Use getCurrentDateTime
+   Action 2: Use changeCalendarMonthYear with the next month
+   Response: "Displaying the calendar for [next month]. Let me know if you need any other views."
+
+4. User: "What events do I have this month?"
+   Action 1: Use getCurrentDateTime
+   Action 2: Use getEventsForMonth with the current month and year
+   Response: "This month, you have [Event 1] on [Date] at [Time], [Event 2] on [Date] at [Time], ..."
+
+Notes:
+- Always use multiple function calls for date-related queries: first getCurrentDateTime, then getEventsForDate or getEventsForMonth
+- Calculate relative dates (like tomorrow) based on the result of getCurrentDateTime
+- Provide clear, date-specific responses when listing events
+"""
 
 if "messages" not in st.session_state:
     st.session_state.messages = [{"role": "system", "content": [{"type": "text", "text": SYSTEM_PROMPT}]}]
@@ -42,7 +82,7 @@ if "client" not in st.session_state:
     st.session_state.clientOpenAI = OpenAI(api_key=os.getenv('OPEN_AI_APIKEY'))
 
 if "modelName" not in st.session_state:
-    st.session_state.modelName = "gpt-4o"
+    st.session_state.modelName = "gpt-4-turbo"
 
 # Initialize month and year in session state
 if "calendar_month" not in st.session_state:
@@ -59,12 +99,14 @@ calendar_placeholder = st.empty()
 
 calendar_update = False
 
-# Function to get events for a specific month
-def get_events_for_month(year, month):
-    start_date = f"{year}-{month:02d}-01"
-    end_date = f"{year}-{month:02d}-{calendar.monthrange(year, month)[1]:02d}"
-    events = events_table.all(formula=f"AND({{Event Date}} >= '{start_date}', {{Event Date}} <= '{end_date}')")
-    return {event['fields']['Event Date']: event['fields'] for event in events}
+def getCurrentDateTime():
+    now = datetime.now()
+    return {
+        "date": now.strftime("%Y-%m-%d"),
+        "month": now.month,
+        "year": now.year,
+        "time": now.strftime("%H:%M:%S")
+    }
 
 # New function to change the calendar month and year
 def changeCalendarMonthYear(month, year):
@@ -100,7 +142,11 @@ def addEvent(date, time, description, recurring="False", recurringfreqinterval="
         st.error(f"Error adding event: {str(e)}")
         return False
 
-def get_events_for_month(year, month):
+def getEventsForDate(date):
+    events = events_table.all(formula=f"{{Event Date}} = '{date}'")
+    return [event['fields'] for event in events]
+
+def getEventsForMonth(year, month):
     start_date = f"{year}-{month:02d}-01"
     end_date = f"{year}-{month:02d}-{calendar.monthrange(year, month)[1]:02d}"
     events = events_table.all(formula=f"AND({{Event Date}} >= '{start_date}', {{Event Date}} <= '{end_date}')")
@@ -123,7 +169,7 @@ def display_calendar():
     year = st.session_state.calendar_year
 
     # Fetch events for the entire month
-    month_events = get_events_for_month(year, month)
+    month_events = getEventsForMonth(year, month)
 
     cal = calendar.monthcalendar(year, month)
     days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
@@ -202,10 +248,50 @@ TOOLS = [
                     "year": {"type": "integer", "description": "The new year"},
                 },
                 "required": ["month", "year"],
-                "additionalProperties": False,
             },
         }
-    }
+    },
+    {
+    "type": "function",
+    "function": {
+        "name": "getCurrentDateTime",
+        "description": "Get the current date, month, year, and time.",
+        "parameters": {
+            "type": "object",
+            "properties": {},
+            "required": []
+            }
+        }
+    },
+    {
+    "type": "function",
+    "function": {
+        "name": "getEventsForDate",
+        "description": "Retrieve all events for a specific date.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "date": {"type": "string", "description": "The date for which to retrieve events (YYYY-MM-DD)"},
+            },
+            "required": ["date"]
+            }
+        }
+    },
+    {
+    "type": "function",
+    "function": {
+        "name": "getEventsForMonth",
+        "description": "Retrieve all events for a specific month.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "year": {"type": "integer", "description": "The year for which to retrieve events"},
+                "month": {"type": "integer", "description": "The month number (1-12) for which to retrieve events"},
+            },
+            "required": ["year", "month"]
+            }
+        }
+    },
 ]
 
 # Define a function to count tokens for conversation history
@@ -229,17 +315,78 @@ def ensure_token_limit(messages, model="gpt-4o"):
         token_count = num_tokens_from_messages(messages, model)
     return messages
 
-# Chatbot interaction
+assistant = st.session_state.clientOpenAI.beta.assistants.create(
+        instructions=SYSTEM_PROMPT,
+        model=st.session_state.modelName,
+        tools=TOOLS,
+)
+
 def getOpenAiResponse(prompt):
+    # Create a thread for this conversation
+    thread = st.session_state.clientOpenAI.beta.threads.create()
+
+    # Add the user's message to the thread
+    st.session_state.clientOpenAI.beta.threads.messages.create(
+        thread_id=thread.id,
+        role="user",
+        content=prompt
+    )
+
+    # Run the assistant
+    run = st.session_state.clientOpenAI.beta.threads.runs.create(
+        thread_id=thread.id,
+        assistant_id=assistant.id
+    )
+
+    # Poll for the run to complete
+    while run.status not in ["completed", "failed"]:
+        time.sleep(1)  # Wait for a second before checking again
+        run = st.session_state.clientOpenAI.beta.threads.runs.retrieve(thread_id=thread.id, run_id=run.id)
+
+        if run.status == "requires_action":
+            tool_outputs = []
+            for tool_call in run.required_action.submit_tool_outputs.tool_calls:
+                function_name = tool_call.function.name
+                function_args = json.loads(tool_call.function.arguments)
+
+                if function_name == "getCurrentDateTime":
+                    result = getCurrentDateTime()
+                elif function_name == "getEventsForDate":
+                    result = getEventsForDate(function_args["date"])
+                elif function_name == "addEvent":
+                    result = addEvent(**function_args)
+                elif function_name == "changeCalendarMonthYear":
+                    result = changeCalendarMonthYear(function_args["month"], function_args["year"])
+                elif function_name == "getEventsForMonth":
+                    result = getEventsForMonth(function_args["year"], function_args["month"])
+
+                tool_outputs.append({
+                    "tool_call_id": tool_call.id,
+                    "output": json.dumps(result)
+                })
+
+            # Submit all tool outputs
+            run = st.session_state.clientOpenAI.beta.threads.runs.submit_tool_outputs(
+                thread_id=thread.id,
+                run_id=run.id,
+                tool_outputs=tool_outputs
+            )
+
+    # Retrieve and return the assistant's response
+    messages = st.session_state.clientOpenAI.beta.threads.messages.list(thread_id=thread.id)
+    return messages.data[0].content[0].text.value
+
+# Chatbot interaction
+def OLDgetOpenAiResponse(prompt):
     response = st.session_state.clientOpenAI.chat.completions.create(
         messages=st.session_state.messages,
         model=st.session_state.modelName,
         max_tokens=MAX_OUTPUT_TOKENS,
         tools=TOOLS,
     )
-    print(response)
-    
-    if response.choices[0].finish_reason == "tool_calls":
+    print("Initial Response:", response)    
+
+    while response.choices[0].finish_reason == "tool_calls":
         tool_call = response.choices[0].message.tool_calls[0]
         functionName = tool_call.function.name
         functionArguments = json.loads(tool_call.function.arguments)
@@ -280,6 +427,37 @@ def getOpenAiResponse(prompt):
                 }),
                 "tool_call_id": tool_call.id
             }
+        elif functionName == 'getCurrentDateTime':
+            current_info = getCurrentDateTime()
+            function_call_result_message = {
+                "role": "tool",
+                "content": json.dumps(current_info),
+                "tool_call_id": tool_call.id
+            }
+        elif functionName == 'getEventsForMonth':
+            year = functionArguments["year"]
+            month = functionArguments["month"]
+            events = getEventsForMonth(year, month)
+            function_call_result_message = {
+                "role": "tool",
+                "content": json.dumps({
+                    "year": year,
+                    "month": month,
+                    "events": events
+                }),
+                "tool_call_id": tool_call.id
+            }
+        elif functionName == 'getEventsForDate':
+            date = functionArguments["date"]
+            events = getEventsForDate(date) 
+            function_call_result_message = {
+                "role": "tool",
+                "content": json.dumps({
+                    "date": date,
+                    "events": events
+                }),
+                "tool_call_id": tool_call.id
+            }
         else:
             function_call_result_message = {
                 "role": "tool",
@@ -304,6 +482,8 @@ def getOpenAiResponse(prompt):
             model=completion_payload["model"],
             messages=completion_payload["messages"]
         )
+        print("\n Response "+ functionName + " : ", response)
+    
     return response
 
 last_user_index = None
@@ -337,7 +517,8 @@ if input_text:
     
     with st.chat_message(name="assistant"):
         assistantResponse = getOpenAiResponse(input_text)
-        output = assistantResponse.choices[0].message.content
+        #output = assistantResponse.choices[0].message.content
+        output = assistantResponse
         st.write(output)
         st.session_state.messages.append({"role": "assistant", "content":output})
         st.rerun()
