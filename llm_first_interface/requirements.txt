@@ -4,3 +4,4 @@ python-dateutil
 openai
 tiktoken
 python-dotenv
+streamlit_mic_recorder
