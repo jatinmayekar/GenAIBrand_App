@@ -10,6 +10,7 @@ import tiktoken
 import time
 import uuid
 from streamlit_mic_recorder import mic_recorder
+import numpy as np
 import io
 import os
 from dotenv import load_dotenv
@@ -29,13 +30,14 @@ api = Api(AIRTABLE_API_KEY)  # Instantiate Api with API key
 events_table = api.table(BASE_ID, EVENTS_TABLE_NAME)  # Connect to the events table
 
 # Initialize session state for chat and events
-SYSTEM_PROMPT = """You are a smart, intuitive calendar app assistant. Help users manage events, check schedules, and navigate the calendar. Use these functions:
+SYSTEM_PROMPT = """You are a smart, intuitive calendar app assistant with advanced AI capabilities. Help users manage events, check schedules, and navigate the calendar. Use these functions:
 
-- addEvent: Add events to the calendar
+- addEvent: Add events to the calendar with AI-generated summaries and embeddings
 - changeCalendarMonthYear: Change the displayed month/year
 - getCurrentDateTime: Get current date and time
 - getEventsForMonth: Retrieve all events for a specific month
 - getEventsForDate: Retrieve all events for a specific date
+- find_closest_event: Find the most relevant event based on user description
 
 Steps:
 1. Understand user intent
@@ -44,30 +46,38 @@ Steps:
 4. Provide clear feedback
 
 Examples:
-1. User: "Set a meeting with John on May 15th at 2 PM."
+1. User: "Set a meeting with John on May 15th at 2 PM. I'm nervous about this meeting."
    Action: Use addEvent
-   Response: "Meeting with John scheduled for May 15th at 2 PM. Anything else?"
+   Response: "I've scheduled a meeting with John for May 15th at 2 PM. I've noted in the AI summary that you're feeling nervous about this meeting. Is there anything else you'd like me to add or any way I can help you prepare?"
 
 2. User: "What's my schedule for tomorrow?"
    Action 1: Use getCurrentDateTime to get today's date
    Action 2: Calculate tomorrow's date based on the result of getCurrentDateTime
    Action 3: Use getEventsForDate with the calculated tomorrow's date
-   Response: "For tomorrow, [calculated date], you have: [Event 1] at [Time], [Event 2] at [Time]."
+   Response: "For tomorrow, [calculated date], you have: [Event 1] at [Time], [Event 2] at [Time]. Based on the AI summaries, it looks like you might need to prepare for [specific detail]. Can I help with anything else?"
 
 3. User: "Show me next month's calendar."
    Action 1: Use getCurrentDateTime
    Action 2: Use changeCalendarMonthYear with the next month
-   Response: "Displaying the calendar for [next month]. Let me know if you need any other views."
+   Response: "Displaying the calendar for [next month]. I see you have several important events coming up. Would you like me to highlight any specific types of events?"
 
 4. User: "What events do I have this month?"
    Action 1: Use getCurrentDateTime
    Action 2: Use getEventsForMonth with the current month and year
-   Response: "This month, you have [Event 1] on [Date] at [Time], [Event 2] on [Date] at [Time], ..."
+   Response: "This month, you have [Event 1] on [Date] at [Time], [Event 2] on [Date] at [Time], ... The AI summaries suggest that [Event X] might require some extra preparation. Would you like more details on any of these events?"
+
+5. User: "Find that important meeting I have coming up, I think it was with a client?"
+   Action: Use find_closest_event with the user's description
+   Response: "Based on your description, I believe you're referring to the meeting with [Client Name] scheduled for [Date] at [Time]. The AI summary notes that this is a high-priority client meeting to discuss [Topic]. Would you like me to provide more details or help you prepare?"
 
 Notes:
 - Always use multiple function calls for date-related queries: first getCurrentDateTime, then getEventsForDate or getEventsForMonth
 - Calculate relative dates (like tomorrow) based on the result of getCurrentDateTime
 - Provide clear, date-specific responses when listing events
+- Utilize the AI-generated summaries to provide more context and helpful information about events
+- When adding events, be sure to capture any emotional context or special notes from the user to include in the AI summary
+- Use the find_closest_event function when users are unsure about exact event details
+- Offer proactive assistance based on the AI summaries of events (e.g., suggesting preparation for important meetings)
 """
 
 if "messages" not in st.session_state:
@@ -80,8 +90,11 @@ if "messages" not in st.session_state:
 if "buttons" not in st.session_state:
     st.session_state.buttons = {}  # Track button state for each day
 
-if "client" not in st.session_state:
+if "clientOpenAI" not in st.session_state:
     st.session_state.clientOpenAI = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+
+if not 'clientEmbeddingsOpenAI' in st.session_state:
+    st.session_state.clientEmbeddingsOpenAI = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
 if "modelName" not in st.session_state:
     st.session_state.modelName = "gpt-4-turbo"
@@ -168,9 +181,43 @@ def changeCalendarMonthYear(month, year):
     st.rerun()
     return True
 
+def get_embedding(text, model="text-embedding-3-small"):
+    text = text.replace("\n", " ")
+    return st.session_state.clientEmbeddingsOpenAI.embeddings.create(input=[text], model=model).data[0].embedding
+
+def cosine_similarity(a, b):
+    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+
+def generate_ai_summary(date, time, description, recurring="False", recurringfreqinterval="None", recurringfreqenddate="None"):
+    full_event_details = f"""
+    Date: {date}
+    Time: {time}
+    Description: {description}
+    Recurring: {recurring}
+    Recurring Interval: {recurringfreqinterval}
+    Recurring End Date: {recurringfreqenddate}
+    """
+    
+    response = st.session_state.clientEmbeddingsOpenAI.chat.completions.create(
+        model=st.session_state.modelName,
+        messages=[
+            {"role": "system", "content": """You are a helpful assistant that creates concise yet comprehensive summaries of calendar events. 
+            Include all relevant details. 
+            Keep the summary under 50 words."""},
+            {"role": "user", "content": f"Please provide a brief summary of this calendar event: {full_event_details}"}
+        ]
+    )
+    return response.choices[0].message.content
+
 def addEvent(date, time, description, recurring="False", recurringfreqinterval="None", recurringfreqenddate="None"):
     ai_summary="ai summary here"
     try:
+        # Generate AI summary
+        ai_summary = generate_ai_summary(date, time, description, recurring, recurringfreqinterval, recurringfreqenddate)
+        
+        # Generate embedding for the AI summary
+        embedding = get_embedding(ai_summary)
+
         # Insert event into Airtable
         events_table.create({
             "Event Date": date,
@@ -179,20 +226,42 @@ def addEvent(date, time, description, recurring="False", recurringfreqinterval="
             "Recurring": recurring,
             "Recurring Interval": recurringfreqinterval,
             "Recurring End Date": recurringfreqenddate,
-            "AI Summary": ai_summary
+            "AI Summary": ai_summary,
+            "Embedding": json.dumps(embedding)  # Store embedding as JSON string
         })
 
         # Update the button display for that date
         if date in st.session_state.buttons:
+            events = events_table.all(formula=f"{{Event Date}} = '{date}'")
             st.session_state.buttons[date] = f"{date[-2:]} • {len(st.session_state.events[date])} events"
 
         st.success(f"Event '{description}' added successfully on {date} at {time}")
-        #display_calendar()  # Refresh the calendar
-        #st.rerun()
         return True
     except Exception as e:
         st.error(f"Error adding event: {str(e)}")
         return False
+
+def find_closest_event(user_input, date=None):
+    user_embedding = get_embedding(user_input)
+    
+    # Fetch events (potentially filtered by date)
+    if date:
+        events = events_table.all(formula=f"{{Event Date}} = '{date}'")
+    else:
+        events = events_table.all()
+    
+    closest_event = None
+    highest_similarity = -1
+
+    for event in events:
+        event_embedding = json.loads(event['fields'].get('Embedding', '[]'))
+        if event_embedding:
+            similarity = cosine_similarity(user_embedding, event_embedding)
+            if similarity > highest_similarity:
+                highest_similarity = similarity
+                closest_event = event
+
+    return closest_event if highest_similarity > 0.5 else None  # Threshold can be adjusted
 
 def getEventsForDate(date):
     events = events_table.all(formula=f"{{Event Date}} = '{date}'")
@@ -273,7 +342,7 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "addEvent",
-            "description": "Add an event with all details including AI summary and recurring options.",
+            "description": "Add an event/reminder/recurring event/appointment or anything the user wants to add to remember with all details",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -283,8 +352,23 @@ TOOLS = [
                     "recurring": {"type": "string", "description": "Is the event recurring?", "default": "False"},
                     "recurringfreqinterval": {"type": "string", "description": "Interval for recurrence", "default": "None"},
                     "recurringfreqenddate": {"type": "string", "description": "End date for recurrence", "default": "None"},
-                },
+        },  
                 "required": ["date", "time", "description", "recurring", "recurringfreqinterval", "recurringfreqenddate"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "find_closest_event",
+            "description": "Find the closest matching event based on user input and optionally a specific date.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "user_input": {"type": "string", "description": "User's description or query about the event"},
+                    "date": {"type": "string", "description": "Optional date to filter events (YYYY-MM-DD)"},
+                },
+                "required": ["user_input"]
             }
         }
     },
@@ -407,6 +491,8 @@ def getOpenAiResponse(prompt):
                     result = getEventsForDate(function_args["date"])
                 elif function_name == "addEvent":
                     result = addEvent(**function_args)
+                elif function_name == "find_closest_event":
+                    result = find_closest_event(**function_args)
                 elif function_name == "changeCalendarMonthYear":
                     result = changeCalendarMonthYear(function_args["month"], function_args["year"])
                 elif function_name == "getEventsForMonth":
@@ -586,3 +672,4 @@ if user_input:
         st.session_state.messages.append({"role": "assistant", "content": assistant_response})
         st.rerun()
             
+

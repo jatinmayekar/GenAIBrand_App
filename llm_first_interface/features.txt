@@ -1,4 +1,4 @@
-1. fix aduio feature - audio buttons should show during all the convo and run only once
+1. fix audio feature - audio buttons should show during all the convo and run only once
 2. add update and delete functions
 3. add ai summary function for dates and functions to get ai summaries for any number of dates
 4. add user sign in and account creation
