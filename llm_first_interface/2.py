@@ -37,13 +37,21 @@ SYSTEM_PROMPT = """You are a smart, intuitive calendar app assistant with advanc
 - getCurrentDateTime: Get current date and time
 - getEventsForMonth: Retrieve all events for a specific month
 - getEventsForDate: Retrieve all events for a specific date
-- find_closest_event: Find the most relevant event based on user description
+- find_closest_event: Find the most relevant event based on user description (uses semantic search)
+- updateEvent: Update an existing event in the calendar
+- deleteEvent: Delete an event from the calendar
 
 Steps:
 1. Understand user intent
 2. Clarify details if needed
 3. Execute actions using appropriate functions (use multiple functions when necessary)
 4. Provide clear feedback
+
+When updating or deleting events:
+1. Always use find_closest_event first to locate the event the user is referring to.
+2. Present the details of the found event to the user and ask for confirmation.
+3. For updates, use the updateEvent function, which will compare the original event with the user's input to determine necessary changes.
+4. Only proceed with the update or delete action after receiving explicit confirmation from the user.
 
 Examples:
 1. User: "Set a meeting with John on May 15th at 2 PM. I'm nervous about this meeting."
@@ -70,6 +78,13 @@ Examples:
    Action: Use find_closest_event with the user's description
    Response: "Based on your description, I believe you're referring to the meeting with [Client Name] scheduled for [Date] at [Time]. The AI summary notes that this is a high-priority client meeting to discuss [Topic]. Would you like me to provide more details or help you prepare?"
 
+6. User: "Change my dentist appointment next week to Friday at 2 PM."
+   Assistant: Let me find that appointment for you. [Uses find_closest_event]
+   Assistant: I've found a dentist appointment scheduled for [original date and time]. Is this the appointment you'd like to change to Friday at 2 PM?
+   User: "Yes, that's the one."
+   Assistant: Great, I'll update that for you now. [Uses updateEvent function]
+   Assistant: The appointment has been updated to Friday at 2 PM. The AI summary has been refreshed to reflect this change. Is there anything else you'd like me to do?
+
 Notes:
 - Always use multiple function calls for date-related queries: first getCurrentDateTime, then getEventsForDate or getEventsForMonth
 - Calculate relative dates (like tomorrow) based on the result of getCurrentDateTime
@@ -77,15 +92,14 @@ Notes:
 - Utilize the AI-generated summaries to provide more context and helpful information about events
 - When adding events, be sure to capture any emotional context or special notes from the user to include in the AI summary
 - Use the find_closest_event function when users are unsure about exact event details
+- For updates, the updateEvent function will intelligently compare the original event with the user's input to determine necessary changes
+- After updates, mention that the AI summary has been refreshed to reflect the changes
 - Offer proactive assistance based on the AI summaries of events (e.g., suggesting preparation for important meetings)
+- Leverage the semantic search capabilities of find_closest_event to locate events even with vague user descriptions
 """
 
 if "messages" not in st.session_state:
     st.session_state.messages = [{"role": "system", "content": [{"type": "text", "text": SYSTEM_PROMPT}]}]
-
-# Remove this line as events will be stored in Airtable
-# if "events" not in st.session_state:
-#     st.session_state.events = {}
 
 if "buttons" not in st.session_state:
     st.session_state.buttons = {}  # Track button state for each day
@@ -263,6 +277,93 @@ def find_closest_event(user_input, date=None):
 
     return closest_event if highest_similarity > 0.5 else None  # Threshold can be adjusted
 
+def updateEvent(event_id, user_input):
+    try:
+        # Fetch the original event
+        event = events_table.get(event_id)
+        if not event:
+            return False, "Event not found"
+
+        og_event = event['fields'].get('AI Summary', '')
+
+        if not 'clientUpdateOpenAI' in st.session_state:
+            st.session_state.clientUpdateOpenAI = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+            
+        # Use AI to compare original event with user input and determine updates
+        response = st.session_state.clientUpdateOpenAI.chat.completions.create(
+            model=st.session_state.modelName,
+            messages=[
+                {"role": "system", "content": """Compare the original event with the user input. 
+                Determine which parameters need updating and their new values: date, time, description, recurring, recurringfreqinterval, recurringfreqenddate. 
+                Output only the changes in JSON format. Exclude unchanged fields."""},
+                {"role": "user", "content": f"Original event: {og_event}\nUser input: {user_input}"}
+            ]
+        )
+
+        new_event = json.loads(response.choices[0].message.content)
+
+        # Mapping between AI output fields and Airtable fields
+        field_mapping = {
+            'date': 'Event Date',
+            'time': 'Event Time',
+            'description': 'Description',
+            'recurring': 'Recurring',
+            'recurringfreqinterval': 'Recurring Interval',
+            'recurringfreqenddate': 'Recurring End Date'
+        }
+
+        # Update the event fields
+        update_fields = {field_mapping[k]: v for k, v in new_event.items() if k in field_mapping}
+
+        # If any fields were updated, generate a new AI summary and embedding
+        if update_fields:
+            event_fields = event['fields']
+            full_date = update_fields.get('Event Date', event_fields.get('Event Date', ''))
+            full_time = update_fields.get('Event Time', event_fields.get('Event Time', ''))
+            full_description = update_fields.get('Description', event_fields.get('Description', ''))
+            full_recurring = update_fields.get('Recurring', event_fields.get('Recurring', 'False'))
+            full_recurring_interval = update_fields.get('Recurring Interval', event_fields.get('Recurring Interval', 'None'))
+            full_recurring_end_date = update_fields.get('Recurring End Date', event_fields.get('Recurring End Date', 'None'))
+
+            ai_summary = generate_ai_summary(full_date, full_time, full_description, full_recurring, full_recurring_interval, full_recurring_end_date)
+            update_fields['AI Summary'] = ai_summary
+            update_fields['Embedding'] = json.dumps(get_embedding(ai_summary))
+
+            # Update the event in Airtable
+            events_table.update(event_id, update_fields)
+            return True, f"Event updated successfully. Changes: {', '.join(update_fields.keys())}"
+        else:
+            return False, "No changes were needed based on the user input."
+
+    except json.JSONDecodeError:
+        return False, "Error parsing AI response"
+    except Exception as e:
+        return False, f"Error updating event: {str(e)}"
+
+def deleteEvent(event_id):
+    try:
+        # Fetch the event to get its date (for updating the button display)
+        event = events_table.get(event_id)
+        if not event:
+            return False, "Event not found"
+
+        date = event['fields'].get('Event Date')
+
+        # Delete the event from Airtable
+        events_table.delete(event_id)
+
+        # Update the button display for that date
+        if date and date in st.session_state.buttons:
+            events = getEventsForDate(date)
+            if events:
+                st.session_state.buttons[date] = f"{date[-2:]} • {len(events)} events"
+            else:
+                st.session_state.buttons[date] = date[-2:]
+
+        return True, "Event deleted successfully"
+    except Exception as e:
+        return False, f"Error deleting event: {str(e)}"
+
 def getEventsForDate(date):
     events = events_table.all(formula=f"{{Event Date}} = '{date}'")
     return [event['fields'] for event in events]
@@ -372,6 +473,34 @@ TOOLS = [
             }
         }
     },
+        {
+        "type": "function",
+        "function": {
+            "name": "updateEvent",
+            "description": "Update an existing event in the calendar",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "user_input": {"type": "string", "description": "User's description of the changes to be made"}
+                },
+                "required": ["user_input"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "deleteEvent",
+            "description": "Delete an event from the calendar",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "event_id": {"type": "string", "description": "ID of the event to delete"}
+                },
+                "required": []
+            }
+        }
+    },
     {
         "type": "function",
         "function": {
@@ -458,171 +587,105 @@ assistant = st.session_state.clientOpenAI.beta.assistants.create(
 )
 
 def getOpenAiResponse(prompt):
-    # Create a thread for this conversation
-    thread = st.session_state.clientOpenAI.beta.threads.create()
+    try:
+        # Create a thread for this conversation if it doesn't exist
+        if 'thread_id' not in st.session_state:
+            thread = st.session_state.clientOpenAI.beta.threads.create()
+            st.session_state.thread_id = thread.id
 
-    # Add the user's message to the thread
-    st.session_state.clientOpenAI.beta.threads.messages.create(
-        thread_id=thread.id,
-        role="user",
-        content=prompt
-    )
-
-    # Run the assistant
-    run = st.session_state.clientOpenAI.beta.threads.runs.create(
-        thread_id=thread.id,
-        assistant_id=assistant.id
-    )
-
-    # Poll for the run to complete
-    while run.status not in ["completed", "failed"]:
-        time.sleep(1)  # Wait for a second before checking again
-        run = st.session_state.clientOpenAI.beta.threads.runs.retrieve(thread_id=thread.id, run_id=run.id)
-
-        if run.status == "requires_action":
-            tool_outputs = []
-            for tool_call in run.required_action.submit_tool_outputs.tool_calls:
-                function_name = tool_call.function.name
-                function_args = json.loads(tool_call.function.arguments)
-
-                if function_name == "getCurrentDateTime":
-                    result = getCurrentDateTime()
-                elif function_name == "getEventsForDate":
-                    result = getEventsForDate(function_args["date"])
-                elif function_name == "addEvent":
-                    result = addEvent(**function_args)
-                elif function_name == "find_closest_event":
-                    result = find_closest_event(**function_args)
-                elif function_name == "changeCalendarMonthYear":
-                    result = changeCalendarMonthYear(function_args["month"], function_args["year"])
-                elif function_name == "getEventsForMonth":
-                    result = getEventsForMonth(function_args["year"], function_args["month"])
-
-                tool_outputs.append({
-                    "tool_call_id": tool_call.id,
-                    "output": json.dumps(result)
-                })
-
-            # Submit all tool outputs
-            run = st.session_state.clientOpenAI.beta.threads.runs.submit_tool_outputs(
-                thread_id=thread.id,
-                run_id=run.id,
-                tool_outputs=tool_outputs
-            )
-
-    # Retrieve and return the assistant's response
-    messages = st.session_state.clientOpenAI.beta.threads.messages.list(thread_id=thread.id)
-    return messages.data[0].content[0].text.value
-
-# Chatbot interaction
-def OLDgetOpenAiResponse(prompt):
-    response = st.session_state.clientOpenAI.chat.completions.create(
-        messages=st.session_state.messages,
-        model=st.session_state.modelName,
-        max_tokens=MAX_OUTPUT_TOKENS,
-        tools=TOOLS,
-    )
-    print("Initial Response:", response)    
-
-    while response.choices[0].finish_reason == "tool_calls":
-        tool_call = response.choices[0].message.tool_calls[0]
-        functionName = tool_call.function.name
-        functionArguments = json.loads(tool_call.function.arguments)
-        
-        if functionName == 'addEvent':
-            # Extract arguments with defaults
-            date = functionArguments.get("date")
-            time = functionArguments.get("time")
-            description = functionArguments.get("description")
-            recurring = functionArguments.get("recurringfreq", "False")
-            recurringfreqinterval = functionArguments.get("recurringfreqinterval")
-            recurringfreqenddate = functionArguments.get("recurringfreqenddate")
-            #ai_summary = functionArguments.get("ai_summary")
-
-            functionResult = addEvent(date, time, description, recurring, recurringfreqinterval, recurringfreqenddate)
-            calendar_update = functionResult
-            function_call_result_message = {
-                "role": "tool",
-                "content": json.dumps({
-                    "date": date,
-                    "time": time,
-                    "description": description,
-                    "functionCallResult": functionResult
-                }),
-                "tool_call_id": tool_call.id
-            }
-        elif functionName == 'changeCalendarMonthYear':
-            month = functionArguments["month"]
-            year = functionArguments["year"]
-            functionResult = changeCalendarMonthYear(month, year)
-            calendar_update = functionResult
-            function_call_result_message = {
-                "role": "tool",
-                "content": json.dumps({
-                    "month": month,
-                    "year": year,
-                    "functionCallResult": functionResult
-                }),
-                "tool_call_id": tool_call.id
-            }
-        elif functionName == 'getCurrentDateTime':
-            current_info = getCurrentDateTime()
-            function_call_result_message = {
-                "role": "tool",
-                "content": json.dumps(current_info),
-                "tool_call_id": tool_call.id
-            }
-        elif functionName == 'getEventsForMonth':
-            year = functionArguments["year"]
-            month = functionArguments["month"]
-            events = getEventsForMonth(year, month)
-            function_call_result_message = {
-                "role": "tool",
-                "content": json.dumps({
-                    "year": year,
-                    "month": month,
-                    "events": events
-                }),
-                "tool_call_id": tool_call.id
-            }
-        elif functionName == 'getEventsForDate':
-            date = functionArguments["date"]
-            events = getEventsForDate(date) 
-            function_call_result_message = {
-                "role": "tool",
-                "content": json.dumps({
-                    "date": date,
-                    "events": events
-                }),
-                "tool_call_id": tool_call.id
-            }
-        else:
-            function_call_result_message = {
-                "role": "tool",
-                "content": json.dumps({
-                    "functionCallResult": "tool name not registered in tool list for a corresponding function call"
-                }),
-                "tool_call_id": tool_call.id
-            }
-
-        messageHistory = st.session_state.messages + [
-            response.choices[0].message,
-            function_call_result_message
-        ]
-        print("\n Message history: ", messageHistory)
-
-        completion_payload = {
-            "model": st.session_state.modelName,
-            "messages": messageHistory
-        }
-
-        response = st.session_state.clientOpenAI.chat.completions.create(
-            model=completion_payload["model"],
-            messages=completion_payload["messages"]
+        # Add the user's message to the thread
+        st.session_state.clientOpenAI.beta.threads.messages.create(
+            thread_id=st.session_state.thread_id,
+            role="user",
+            content=prompt
         )
-        print("\n Response "+ functionName + " : ", response)
-    
-    return response
+
+        # Run the assistant
+        run = st.session_state.clientOpenAI.beta.threads.runs.create(
+            thread_id=st.session_state.thread_id,
+            assistant_id=assistant.id
+        )
+
+        # Poll for the run to complete
+        while run.status not in ["completed", "failed"]:
+            time.sleep(1)  # Wait for a second before checking again
+            run = st.session_state.clientOpenAI.beta.threads.runs.retrieve(thread_id=st.session_state.thread_id, run_id=run.id)
+
+            if run.status == "requires_action":
+                tool_outputs = []
+                for tool_call in run.required_action.submit_tool_outputs.tool_calls:
+                    function_name = tool_call.function.name
+                    function_args = json.loads(tool_call.function.arguments)
+
+                    if function_name == "getCurrentDateTime":
+                        result = getCurrentDateTime()
+                    elif function_name == "getEventsForDate":
+                        result = getEventsForDate(function_args["date"])
+                    elif function_name == "addEvent":
+                        result = addEvent(**function_args)
+                    elif function_name == "find_closest_event":
+                        result = find_closest_event(**function_args)
+                        if result:
+                            st.session_state.temp_event_id = result['id']
+                            output = {
+                                "event_found": True,
+                                "event_details": result['fields']
+                            }
+                        else:
+                            output = {"event_found": False}
+                    elif function_name == "changeCalendarMonthYear":
+                        result = changeCalendarMonthYear(function_args["month"], function_args["year"])
+                    elif function_name == "getEventsForMonth":
+                        result = getEventsForMonth(function_args["year"], function_args["month"])
+                    elif function_name == "updateEvent":
+                        if 'temp_event_id' in st.session_state:
+                            result, message = updateEvent(st.session_state.temp_event_id, **function_args)
+                            del st.session_state.temp_event_id
+                            output = {"result": result, "message": message}
+                        else:
+                            output = {"result": False, "message": "No event selected for update"}
+                    elif function_name == "deleteEvent":
+                        if 'temp_event_id' in st.session_state:
+                            result, message = deleteEvent(st.session_state.temp_event_id)
+                            del st.session_state.temp_event_id
+                            output = {"result": result, "message": message}
+                        else:
+                            output = {"result": False, "message": "No event selected for deletion"}
+                    else:
+                        # Handle other function calls as before
+                        pass
+
+                    tool_outputs.append({
+                        "tool_call_id": tool_call.id,
+                        "output": json.dumps(result)
+                    })
+
+                # Submit all tool outputs
+                run = st.session_state.clientOpenAI.beta.threads.runs.submit_tool_outputs(
+                    thread_id=st.session_state.thread_id,
+                    run_id=run.id,
+                    tool_outputs=tool_outputs
+                )
+
+        # Retrieve and return the assistant's response
+        messages = st.session_state.clientOpenAI.beta.threads.messages.list(thread_id=st.session_state.thread_id)
+        return messages.data[0].content[0].text.value
+    except openai.APIError as e:
+        print(f"OpenAI API returned an API Error: {e}")
+        st.error(f"OpenAI API returned an API Error: {e}")
+        return "I'm sorry, but I encountered an error. Please try again later."
+    except openai.APIConnectionError as e:
+        print(f"Failed to connect to OpenAI API: {e}")
+        st.error(f"Failed to connect to OpenAI API: {e}")
+        return "I'm having trouble connecting to my brain. Please check your internet connection and try again."
+    except openai.RateLimitError as e:
+        print(f"OpenAI API request exceeded rate limit: {e}")
+        st.error(f"OpenAI API request exceeded rate limit: {e}")
+        return "I'm a bit overwhelmed right now. Please try again in a moment."
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        st.error(f"An unexpected error occurred: {e}")
+        return "Something unexpected happened. Please try again."
 
 last_user_index = None
 for i, message in enumerate(reversed(st.session_state.messages)):
@@ -639,14 +702,6 @@ if last_user_index is not None:
     if last_user_index + 1 < len(st.session_state.messages):
         with st.chat_message(name="assistant"):
             st.write(st.session_state.messages[last_user_index + 1]["content"])
-
-# Chat input for interacting with the calendar
-
-    # Display chat history
-    # for message in st.session_state.messages[1:]:
-    #     with st.chat_message(name=message["role"]):
-    #         st.write(message["content"])
-
 # Function to handle user input (text or speech)
 def handle_user_input():
     text_input = st.chat_input("Type your query here...")
@@ -672,4 +727,5 @@ if user_input:
         st.session_state.messages.append({"role": "assistant", "content": assistant_response})
         st.rerun()
             
+
 
