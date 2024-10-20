@@ -398,6 +398,9 @@ def display_calendar():
 
     st.subheader(f"📅 {datetime(year, month, 1).strftime('%B %Y')}")
     
+    # Get today's date
+    today = datetime.now().date()
+    
     # Display day headers
     cols = st.columns(7)
     for idx, day in enumerate(days):
@@ -410,13 +413,25 @@ def display_calendar():
             if day != 0:
                 date_str = f"{year}-{month:02d}-{day:02d}"
                 event_count = len(month_events.get(date_str, []))
-                display_text = f"{day}" if event_count == 0 else f"{day} • {event_count}"
                 
                 # Use a unique key for each button
                 button_key = f"btn_{date_str}"
                 unique_key = create_unique_key(button_key)
                 
-                if cols[idx].button(display_text, key=unique_key, help=f"Select {date_str}", on_click=lambda d=date_str: setattr(st.session_state, 'selected_date', d)):
+                # Check if this is today's date or the selected date
+                is_today = datetime(year, month, day).date() == today
+                is_selected = date_str == st.session_state.selected_date
+                
+                # Prepare display text
+                if is_today:
+                    display_text = f"📅 {day}" if event_count == 0 else f"📅 {day} • {event_count}"
+                else:
+                    display_text = f"{day}" if event_count == 0 else f"{day} • {event_count}"
+                
+                # Apply different styles based on whether it's selected or not
+                button_type = "primary" if is_selected else "secondary"
+                
+                if cols[idx].button(display_text, key=unique_key, help=f"Select {date_str}", on_click=lambda d=date_str: setattr(st.session_state, 'selected_date', d), type=button_type):
                     pass  # The on_click handler will update the state
 
 display_calendar()
@@ -727,5 +742,8 @@ if user_input:
         st.session_state.messages.append({"role": "assistant", "content": assistant_response})
         st.rerun()
             
+
+
+
 
 
