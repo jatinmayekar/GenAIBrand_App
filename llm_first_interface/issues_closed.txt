@@ -1,0 +1,8 @@
+1. add update and delete functions
+2. add ai summary function for dates and functions to get ai summaries for any number of dates
+3. add a way to detect the date clicked so the ai can respond directly based on the date click to show the events in sidebar and tell the user abt the day - NOPE - sidebar is enough
+4. test if the ai can make multiple events for long running tasks or complicated tasks like a few reminders before the task occurs to make it easy for the user to remember - sort of memory function - ( need more complex and edge cases)
+5. add conversational memory to the ai
+6. add a UI highlight for today's day and date clicked
+7. make sunday the first day rather than the last
+8. add current date to system prompt

@@ -1,0 +1,5 @@
+1. fix audio feature - audio buttons should show during all the convo and run only once - https://docs.livekit.io/agents/openai/overview/
+2. add user sign in and account creation
+3. add a screenshot feature - day, weekly, monthly
+4. add gmail and other integrations
+5. add more long, complex edge cases for the ai to handle
