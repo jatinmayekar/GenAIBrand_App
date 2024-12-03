@@ -9,4 +9,4 @@
 9. make sunday the first day rather than the last!!!!
 10. add a screenshot feature - day, weekly, monthly
 11. add gmail and other integrations
-12. add current date to system prompt
+12. add current date to system prompt - DONE
