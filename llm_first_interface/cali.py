@@ -399,7 +399,8 @@ def display_calendar():
     month_events = getEventsForMonth(year, month)
 
     cal = calendar.monthcalendar(year, month)
-    days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    calendar.setfirstweekday(firstweekday=6)
+    days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
     st.subheader(f"📅 {datetime(year, month, 1).strftime('%B %Y')}")
     
