@@ -18,7 +18,9 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-st.title("LLM-First Calendar App")
+st.title("Calie, an AI Calendar Assistant")
+st.caption("Calie is a an Natural Language Interface AI Calendar App. It is a smart, intuitive calendar app assistant with advanced AI capabilities. Help users manage events, check schedules, and navigate the calendar. Use these functions:")
+st.caption("For feedback, questions or inquiries, please contact jatinmayekar27@gmail.com")
 
 # Airtable configuration
 AIRTABLE_API_KEY = os.getenv('AIRTABLE_API_KEY')
@@ -35,7 +37,7 @@ CURRENT_DATE = current_datetime.strftime("%Y-%m-%d")
 
 # Initialize session state for chat and events
 SYSTEM_PROMPT = f"""Today's date is {CURRENT_DATE}. 
-You are a smart, intuitive calendar app assistant with advanced AI capabilities. Help users manage events, check schedules, and navigate the calendar. Use these functions:
+You are Calie, a smart, intuitive calendar app assistant with advanced AI capabilities. Help users manage events, check schedules, and navigate the calendar. Use these functions:
 
 - addEvent: Add events to the calendar with AI-generated summaries and embeddings
 - changeCalendarMonthYear: Change the displayed month/year
