@@ -21,14 +21,12 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 
-// Add type definitions
 type Event = {
   date: Date;
   title: string;
 };
 
 const CalendarApp = () => {
-  // Add proper types to state
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [message, setMessage] = useState<string>('');
@@ -39,7 +37,6 @@ const CalendarApp = () => {
     { date: new Date(), title: 'Sample Event' }
   ]);
 
-  // Touch gesture handling
   const touchStartX = useRef<number | null>(null);
   const SWIPE_THRESHOLD = 50;
   const DOUBLE_CLICK_DELAY = 300;
@@ -96,42 +93,54 @@ const CalendarApp = () => {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Main Calendar Section */}
-      <div className={`flex-1 flex flex-col h-full ${!isSidebarOpen ? 'pr-8' : ''}`}>
-        <div className="flex-1 p-8 overflow-hidden">
-          <div className={`mx-auto ${!isSidebarOpen ? 'max-w-full' : 'max-w-4xl'}`}>
-            {/* Branding Header */}
-            <div className="text-center mb-8">
-              <h1 className="text-4xl font-bold text-primary mb-2">Calie</h1>
-              <p className="text-gray-600 italic">A smart AI calendar assistant for you</p>
-            </div>
+      <div className="flex-1 flex flex-col h-full">
+        <div className="flex-1 p-8 overflow-hidden flex flex-col items-center">
+          {/* Branding Header */}
+          <div className="text-center mb-8 w-full max-w-lg">
+            <h1 className="text-4xl font-bold text-primary mb-2">Calie</h1>
+            <p className="text-gray-600 italic">A smart AI calendar assistant for you</p>
+          </div>
 
-            {/* Calendar Container */}
+          {/* Calendar Container */}
+          <div className="w-full flex justify-center">
             <div 
               onTouchStart={handleTouchStart}
               onTouchEnd={handleTouchEnd}
-              className="w-full flex justify-center"
+              className="w-full max-w-lg"
             >
-              <div className={`w-full ${!isSidebarOpen ? 'max-w-none' : 'max-w-4xl'}`}>
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={handleDateSelect}
-                  month={currentMonth}
-                  onMonthChange={setCurrentMonth}
-                  className="rounded-md border shadow w-full"
-                  showOutsideDays={false}
-                  disableNavigation={true}
-                />
-              </div>
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={handleDateSelect}
+                month={currentMonth}
+                onMonthChange={setCurrentMonth}
+                className="rounded-md border shadow"
+                showOutsideDays={false}
+                disableNavigation={true}
+                classNames={{
+                  months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
+                  month: "space-y-4 w-full",
+                  table: "w-full border-collapse space-y-1",
+                  head_row: "flex",
+                  head_cell: "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem] flex-1",
+                  row: "flex w-full mt-2",
+                  cell: "text-center text-sm relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20 flex-1 p-0",
+                  day: "h-9 w-9 p-0 font-normal aria-selected:opacity-100 rounded-md flex items-center justify-center mx-auto",
+                  day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+                  day_today: "bg-accent text-accent-foreground",
+                  day_outside: "text-muted-foreground opacity-50",
+                  day_disabled: "text-muted-foreground opacity-50",
+                  day_hidden: "invisible",
+                }}
+              />
             </div>
           </div>
         </div>
 
-        {/* Bottom Controls - remain the same */}
+        {/* Bottom Controls */}
         <div className="border-t bg-white p-4">
-          <div className="max-w-4xl mx-auto space-y-4">
-            {/* All Controls Row */}
+          <div className="mx-auto max-w-lg space-y-4">
+            {/* Controls Row */}
             <div className="flex justify-between items-center">
               <div className="flex gap-2">
                 <Button
