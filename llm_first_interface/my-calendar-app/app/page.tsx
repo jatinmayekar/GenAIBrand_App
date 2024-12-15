@@ -3,15 +3,13 @@ import React, { useState, useRef } from 'react';
 import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
 import { Switch } from "@/components/ui/switch";
 import { 
   Mic, 
   ChevronLeft, 
   ChevronRight, 
   Settings,
-  PanelRightClose,
-  PanelRight
+  PanelRightClose
 } from 'lucide-react';
 import {
   Sheet,
@@ -20,26 +18,29 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar"
+import { AppSidebar } from "@/components/ui/app-sidebar"
 
 type Event = {
   date: Date;
   title: string;
 };
 
-const CalendarApp = () => {
+const CalendarApp: React.FC = () => {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [message, setMessage] = useState<string>('');
   const [gesturesEnabled, setGesturesEnabled] = useState<boolean>(true);
-  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
-  const [lastClickTime, setLastClickTime] = useState<number>(0);
   const [events, setEvents] = useState<Event[]>([
     { date: new Date(), title: 'Sample Event' }
   ]);
 
   const touchStartX = useRef<number | null>(null);
   const SWIPE_THRESHOLD = 50;
-  const DOUBLE_CLICK_DELAY = 300;
 
   const handlePreviousMonth = () => {
     setCurrentMonth(prev => {
@@ -59,14 +60,6 @@ const CalendarApp = () => {
 
   const handleDateSelect = (date: Date | undefined) => {
     if (!date) return;
-    const currentTime = new Date().getTime();
-    const timeDiff = currentTime - lastClickTime;
-    
-    if (timeDiff < DOUBLE_CLICK_DELAY) {
-      setIsSidebarOpen(prev => !prev);
-    }
-    
-    setLastClickTime(currentTime);
     setSelectedDate(date);
   };
 
@@ -92,10 +85,32 @@ const CalendarApp = () => {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <div className="flex-1 flex flex-col h-full">
+    <SidebarProvider>
+      <AppSidebar>
+        <div className="p-4">
+          <h2 className="text-xl font-semibold mb-4">Events</h2>
+          {events.map((event, index) => (
+            <div key={index} className="p-2 mb-2 bg-gray-100 rounded">
+              <p className="font-medium">{event.title}</p>
+              <p className="text-sm text-gray-600">
+                {event.date.toLocaleDateString()}
+              </p>
+            </div>
+          ))}
+        </div>
+      </AppSidebar>
+
+      <SidebarInset>
+        {/* Header with trigger */}
+        <header className="flex h-16 shrink-0 items-center gap-2">
+          <div className="flex items-center gap-2 px-4">
+            <SidebarTrigger className="-ml-1" />
+          </div>
+        </header>
+
+        {/* Main content */}
         <div className="flex-1 p-8 overflow-hidden flex flex-col items-center">
-          {/* Branding Header */}
+          {/* Your existing calendar content */}
           <div className="text-center mb-8 w-full max-w-lg">
             <h1 className="text-4xl font-bold text-primary mb-2">Calie</h1>
             <p className="text-gray-600 italic">A smart AI calendar assistant for you</p>
@@ -111,7 +126,7 @@ const CalendarApp = () => {
               <Calendar
                 mode="single"
                 selected={selectedDate}
-                onSelect={handleDateSelect}
+                onSelect={(date) => handleDateSelect(date)}
                 month={currentMonth}
                 onMonthChange={setCurrentMonth}
                 className="rounded-md border shadow"
@@ -143,16 +158,11 @@ const CalendarApp = () => {
             {/* Controls Row */}
             <div className="flex justify-between items-center">
               <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setIsSidebarOpen(prev => !prev)}
-                >
-                  {isSidebarOpen ? 
-                    <PanelRightClose className="h-4 w-4" /> : 
-                    <PanelRight className="h-4 w-4" />
-                  }
-                </Button>
+                <SidebarTrigger>
+                  <Button variant="outline" size="icon">
+                    <PanelRightClose className="h-4 w-4" />
+                  </Button>
+                </SidebarTrigger>
                 <Button 
                   variant="outline" 
                   size="icon"
@@ -206,25 +216,8 @@ const CalendarApp = () => {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Sidebar */}
-      {isSidebarOpen && (
-        <Card className="w-80 h-full border-l">
-          <CardContent className="p-4">
-            <h2 className="text-xl font-semibold mb-4">Events</h2>
-            {events.map((event, index) => (
-              <div key={index} className="p-2 mb-2 bg-gray-100 rounded">
-                <p className="font-medium">{event.title}</p>
-                <p className="text-sm text-gray-600">
-                  {event.date.toLocaleDateString()}
-                </p>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-    </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 };
 
