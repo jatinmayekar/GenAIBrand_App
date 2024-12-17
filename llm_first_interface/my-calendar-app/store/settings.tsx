@@ -1,19 +1,22 @@
 import { create } from 'zustand'
 
+type ThemeColor = 'zinc' | 'red' | 'rose' | 'orange' | 'green' | 'blue' | 'yellow' | 'violet';
+type ThemeMode = 'light' | 'dark';
+
 interface SettingsStore {
   gesturesEnabled: boolean;
-  themeColor: 'stone' | 'red';
-  themeShade: '50' | '100' | '200' | '300' | '400' | '500' | '600' | '700' | '800' | '900' | '950';
+  themeColor: ThemeColor;
+  themeMode: ThemeMode;
   setGesturesEnabled: (enabled: boolean) => void;
-  setThemeColor: (color: 'stone' | 'red') => void;
-  setThemeShade: (shade: '50' | '100' | '200' | '300' | '400' | '500' | '600' | '700' | '800' | '900' | '950') => void;
+  setThemeColor: (color: ThemeColor) => void;
+  setThemeMode: (mode: ThemeMode) => void;
 }
 
 export const useSettings = create<SettingsStore>((set) => ({
   gesturesEnabled: true,
-  themeColor: 'stone',
-  themeShade: '500',
+  themeColor: 'zinc',
+  themeMode: 'light',
   setGesturesEnabled: (enabled) => set({ gesturesEnabled: enabled }),
   setThemeColor: (color) => set({ themeColor: color }),
-  setThemeShade: (shade) => set({ themeShade: shade }),
+  setThemeMode: (mode) => set({ themeMode: mode }),
 }));

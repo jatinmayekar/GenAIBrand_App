@@ -1,22 +1,14 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+'use client';
+
 import "./globals.css";
+import { useSettings } from '@/store/settings';
 
-const inter = Inter({ subsets: ['latin'] })
-
-export const metadata: Metadata = {
-  title: 'Calie - AI Calendar Assistant',
-  description: 'A smart AI calendar assistant for you',
-};
-
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const { themeMode, themeColor } = useSettings();
+  
   return (
-    <html lang="en">
-      <body className={inter.className}>{children}</body>
+    <html lang="en" className={themeMode} data-theme={themeColor}>
+      <body>{children}</body>
     </html>
   );
 }
