@@ -3,42 +3,25 @@ import React, { useState, useRef } from 'react';
 import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Switch } from "@/components/ui/switch";
 import { 
   Mic, 
   ChevronLeft, 
   ChevronRight, 
-  Settings,
   PanelRightClose
 } from 'lucide-react';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet"
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/ui/app-sidebar"
-
-type Event = {
-  date: Date;
-  title: string;
-};
+import { useSettings } from '@/store/settings';
 
 const CalendarApp: React.FC = () => {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [message, setMessage] = useState<string>('');
-  const [gesturesEnabled, setGesturesEnabled] = useState<boolean>(true);
-  const [events, setEvents] = useState<Event[]>([
-    { date: new Date(), title: 'Sample Event' }
-  ]);
-
+  const gesturesEnabled = useSettings((state) => state.gesturesEnabled);
   const touchStartX = useRef<number | null>(null);
   const SWIPE_THRESHOLD = 50;
 
@@ -89,14 +72,6 @@ const CalendarApp: React.FC = () => {
       <AppSidebar>
         <div className="p-4">
           <h2 className="text-xl font-semibold mb-4">Events</h2>
-          {events.map((event, index) => (
-            <div key={index} className="p-2 mb-2 bg-gray-100 rounded">
-              <p className="font-medium">{event.title}</p>
-              <p className="text-sm text-gray-600">
-                {event.date.toLocaleDateString()}
-              </p>
-            </div>
-          ))}
         </div>
       </AppSidebar>
 
@@ -178,28 +153,6 @@ const CalendarApp: React.FC = () => {
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
-
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="outline" size="icon">
-                    <Settings className="h-4 w-4" />
-                  </Button>
-                </SheetTrigger>
-                <SheetContent>
-                  <SheetHeader>
-                    <SheetTitle>Settings</SheetTitle>
-                  </SheetHeader>
-                  <div className="mt-6">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Gesture Controls</span>
-                      <Switch
-                        checked={gesturesEnabled}
-                        onCheckedChange={setGesturesEnabled}
-                      />
-                    </div>
-                  </div>
-                </SheetContent>
-              </Sheet>
             </div>
 
             {/* Chat Interface */}

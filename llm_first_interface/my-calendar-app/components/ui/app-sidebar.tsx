@@ -19,9 +19,12 @@ import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
+  SidebarGroup,
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
+import { Switch } from "@/components/ui/switch";
+import { useSettings } from '@/store/settings';
 
 // This is sample data.
 const data = {
@@ -154,11 +157,24 @@ const data = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { gesturesEnabled, setGesturesEnabled } = useSettings();
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
       </SidebarHeader>
       <SidebarContent>
+        <SidebarGroup>
+          <div className="mt-6">
+            <div className="flex items-center justify-between">
+              <span className="text-sm">Gesture Controls</span>
+              <Switch
+                checked={gesturesEnabled}
+                onCheckedChange={setGesturesEnabled}
+              />
+            </div>
+          </div>
+        </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={data.user} />
