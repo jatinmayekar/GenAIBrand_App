@@ -18,7 +18,23 @@ import { AppSidebar } from "@/components/ui/app-sidebar"
 import { useSettings } from '@/store/settings';
 import { useReactToPrint } from 'react-to-print';
 import { QRCodeSVG } from 'qrcode.react';  // Change to direct import
-import { Slider } from "@/components/ui/slider";
+import { Slider } from "@/components/ui/slider"
+import {
+  SidebarGroup,
+
+} from "@/components/ui/sidebar"
+import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Sun,
+  Moon,
+} from "lucide-react"
 
 const CalendarApp: React.FC = () => {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
@@ -33,7 +49,12 @@ const CalendarApp: React.FC = () => {
     backgroundOpacity,
     setCalendarScale,
     setBackgroundImage,
-    setBackgroundOpacity 
+    setBackgroundOpacity,
+    themeColor, 
+    themeMode,
+    setGesturesEnabled, 
+    setThemeColor,
+    setThemeMode 
   } = useSettings();
 
   const handlePreviousMonth = () => {
@@ -98,18 +119,65 @@ const CalendarApp: React.FC = () => {
   };
 
   return (
-    <>
       <SidebarProvider>
         <AppSidebar>
-          <div className="p-4 space-y-4">
-          <h3 className="text-sm font-medium">Customization</h3>
-          
+        <SidebarGroup>
+          <div className="space-y-6 p-4">
+            {/* Gesture Controls */}
+            <div className="flex items-center justify-between">
+              <span className="text-sm">Gesture Controls</span>
+              <Switch
+                checked={gesturesEnabled}
+                onCheckedChange={setGesturesEnabled}
+              />
+            </div>
+
+            {/* Theme Color */}
+            <div className="space-y-2">
+              <span className="text-sm">Theme Color</span>
+              <Select
+                value={themeColor}
+                onValueChange={setThemeColor}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select color" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="zinc">Zinc</SelectItem>
+                  <SelectItem value="red">Red</SelectItem>
+                  <SelectItem value="rose">Rose</SelectItem>
+                  <SelectItem value="orange">Orange</SelectItem>
+                  <SelectItem value="green">Green</SelectItem>
+                  <SelectItem value="blue">Blue</SelectItem>
+                  <SelectItem value="yellow">Yellow</SelectItem>
+                  <SelectItem value="violet">Violet</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Theme Mode */}
+            <div className="flex items-center justify-between">
+              <span className="text-sm">Theme Mode</span>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setThemeMode(themeMode === 'light' ? 'dark' : 'light')}
+              >
+                {themeMode === 'light' ? 
+                  <Sun className="h-4 w-4" /> : 
+                  <Moon className="h-4 w-4" />
+                }
+              </Button>
+            </div>
+
           {/* Calendar Size */}
           <div className="space-y-2">
-            <span className="text-sm text-muted-foreground">Calendar Size</span>
             <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Calendar Size (1..3 for print)</span>
-            <span className="text-xs text-gray-500">({calendarScale.toFixed(2)})</span>
+              <span className="text-sm">Calendar Size</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">(1.3 for print)</span>
+              <span className="text-xs text-gray-500">({calendarScale.toFixed(2)})</span>
             </div>
             <Slider
               value={[calendarScale]}
@@ -123,17 +191,15 @@ const CalendarApp: React.FC = () => {
 
           {/* Background Image */}
           <div className="space-y-2">
-            <span className="text-sm text-muted-foreground">Background Image</span>
-            <input
+            <span className="text-sm">Background Image</span>
+            <Input
               type="file"
               accept="image/*"
               onChange={handleFileUpload}
-              className="w-full"
             />
             <Button 
               variant="outline"
               onClick={() => setBackgroundImage(null)}
-              className="w-full"
             >
               Reset Background
             </Button>
@@ -141,9 +207,8 @@ const CalendarApp: React.FC = () => {
 
           {/* Background Opacity */}
           <div className="space-y-2">
-            <span className="text-sm text-muted-foreground">Background Opacity</span>
             <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Background Opacity</span>
+            <span className="text-sm">Background Opacity</span>
             <span className="text-xs text-gray-500">({backgroundOpacity.toFixed(2)})</span>
             </div>
             <Slider
@@ -152,7 +217,6 @@ const CalendarApp: React.FC = () => {
               min={0}
               max={1}
               step={0.1}
-              className="w-full"
             />
           </div>
 
@@ -160,11 +224,11 @@ const CalendarApp: React.FC = () => {
           <Button 
             variant="outline"
             onClick={() => reactToPrintFn()}  // Wrap in arrow function
-            className="w-full"
           >
             Print Calendar
           </Button>
           </div>
+        </SidebarGroup>
         </AppSidebar>
 
         <SidebarInset>
@@ -173,7 +237,7 @@ const CalendarApp: React.FC = () => {
           {/* Main calendar content with background */}
           <div 
             ref={calendarRef}
-            className= "relative flex-1 flex flex-col items-center"
+            className= "calendar-print relative flex-1 flex flex-col items-center"
             style={{
               backgroundImage: backgroundImage ? `url(${backgroundImage})` : undefined,
               backgroundSize: 'cover',
@@ -223,10 +287,10 @@ const CalendarApp: React.FC = () => {
                       month: "space-y-4 w-full",
                       table: "w-full border-collapse",
                       head_row: "flex",
-                      head_cell: "calendar-head-cell text-muted-foreground w-9 font-normal text-[0.8rem] flex-1",
+                      head_cell: "calendar-head-cell text-sm w-9 font-normal text-[0.8rem] flex-1",
                       row: "flex w-full",
                       cell: "calendar-cell text-center text-sm relative focus-within:relative focus-within:z-20 flex-1 p-0", // Removed the accent bg classes
-                      day: "h-24 w-32 p-0 font-normal aria-selected:opacity-100 rounded-md flex items-center justify-center mx-auto",
+                      day: "day h-24 w-32 p-0 font-normal aria-selected:opacity-100 rounded-md flex items-center justify-center mx-auto",
                       day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
                       day_today: "bg-accent text-accent-foreground",
                       day_outside: "text-muted-foreground opacity-50",
@@ -297,7 +361,6 @@ const CalendarApp: React.FC = () => {
           </div>
         </SidebarInset>
       </SidebarProvider>
-    </>
   );
 };
 

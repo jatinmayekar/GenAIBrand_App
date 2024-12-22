@@ -12,8 +12,6 @@ import {
   PieChart,
   Settings2,
   SquareTerminal,
-  Sun,
-  Moon,
 } from "lucide-react"
 
 import { NavUser } from "@/components/ui/nav-user"
@@ -21,20 +19,9 @@ import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
-  SidebarGroup,
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Button } from '@/components/ui/button';
-import { useSettings } from '@/store/settings';
 
 // This is sample data.
 const data = {
@@ -167,15 +154,6 @@ const data = {
 }
 
 export function AppSidebar({ children, ...props }: React.ComponentProps<typeof Sidebar>) {
-    const { 
-        gesturesEnabled, 
-        themeColor, 
-        themeMode,
-        setGesturesEnabled, 
-        setThemeColor,
-        setThemeMode 
-  } = useSettings();
-
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -185,59 +163,7 @@ export function AppSidebar({ children, ...props }: React.ComponentProps<typeof S
         </div>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup>
-          <div className="space-y-6 p-4">
-            {/* Gesture Controls */}
-            <div className="flex items-center justify-between">
-              <span className="text-sm">Gesture Controls</span>
-              <Switch
-                checked={gesturesEnabled}
-                onCheckedChange={setGesturesEnabled}
-              />
-            </div>
-
-            {/* Theme Color */}
-            <div className="space-y-2">
-              <span className="text-sm">Theme Color</span>
-              <Select
-                value={themeColor}
-                onValueChange={setThemeColor}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select color" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="zinc">Zinc</SelectItem>
-                  <SelectItem value="red">Red</SelectItem>
-                  <SelectItem value="rose">Rose</SelectItem>
-                  <SelectItem value="orange">Orange</SelectItem>
-                  <SelectItem value="green">Green</SelectItem>
-                  <SelectItem value="blue">Blue</SelectItem>
-                  <SelectItem value="yellow">Yellow</SelectItem>
-                  <SelectItem value="violet">Violet</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Theme Mode */}
-            <div className="flex items-center justify-between">
-              <span className="text-sm">Theme Mode</span>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setThemeMode(themeMode === 'light' ? 'dark' : 'light')}
-              >
-                {themeMode === 'light' ? 
-                  <Sun className="h-4 w-4" /> : 
-                  <Moon className="h-4 w-4" />
-                }
-              </Button>
-            </div>
-          </div>
-        </SidebarGroup>
-
         {children}
-
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={data.user} />

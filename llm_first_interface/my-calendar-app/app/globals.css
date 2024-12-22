@@ -550,41 +550,53 @@ body {
   body {
     margin: 0 !important;
     padding: 0 !important;
+    overflow: hidden !important;
     /* Ensures full-bleed printing if the printer supports it */
     width: 100%;
     height: 100%;
-  }
-
-  body {
     /* The standardized property */
     print-color-adjust: exact;
     /* The vendor-prefixed property for Safari/Chrome */
     -webkit-print-color-adjust: exact;
-
-    /*
-      Remove or comment out color-adjust if it triggers unknown property warnings:
-      color-adjust: exact;  // (likely not recognized by your linter)
-    */
   }
 
-  @media print {
-    .calendar-cell {
-      border-top: 1px solid black !important;
-      border-bottom: 1px solid black !important;
-      border-right: 1px solid black !important;
-      border-left: 1px solid black !important;
-    }
-    .calendar-head-cell {
-      border-top: 1px solid black !important;
-      border-bottom: 1px solid black !important;
-      border-right: 1px solid black !important;
-      border-left: 1px solid black !important;
-    }
+  .day {
+    /* Override any 'center' alignment */
+    align-items: flex-start !important;
+    justify-content: flex-start !important;
+    /* Remove the auto-centering margin */
+    margin: 0 !important;
+    /* Optional small padding to keep text off the extreme edge */
+    padding: 0.25rem !important;
+    /* If you want the text itself left-aligned */
+    text-align: left !important;
+  }
+
+  .calendar-cell {
+    border-top: 1px solid black !important;
+    border-bottom: 1px solid black !important;
+    border-right: 1px solid black !important;
+    border-left: 1px solid black !important;
+  }
+  .calendar-head-cell {
+    border-top: 1px solid black !important;
+    border-bottom: 1px solid black !important;
+    border-right: 1px solid black !important;
+    border-left: 1px solid black !important;
+  }
+  [aria-selected="true"] {
+    /* Remove the highlight for the day selected */
+    background: transparent !important;
+    color: inherit !important;
+  }
+  .bg-accent {
+    background-color: transparent !important;
+    background: transparent !important;
   }
 
   .calendar-wrapper {
     /* If you want landscape specifically */
-    width: 250mm !important; 
+    width: 297mm !important; 
     height: 210mm !important; 
     margin: 0 auto !important; 
     transform: scale(1) !important;
@@ -594,6 +606,24 @@ body {
     border-radius: 0 !important;
     border: none !important;
     overflow: hidden;
+  }
+
+  .calendar-print {
+    width: 297mm !important;
+    height: 210mm !important;
+    margin: 0 auto !important; /* center on the page */
+    transform: scale(1) !important;
+    transform-origin: top center !important;
+    
+    /* Force the background to fill that A4 area */
+    background-size: cover !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+
+    /* If you want to hide overflow so there’s no scrollbars in print */
+    border-radius: 0 !important;
+    border: none !important;
+    overflow: hidden !important;
   }
 
   /* 4) Absolutely position the watermark or QR code in bottom-right */
