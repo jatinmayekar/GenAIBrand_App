@@ -17,6 +17,9 @@ import {
 import { AppSidebar } from "@/components/ui/app-sidebar"
 import { useSettings } from '@/store/settings';
 import Head from 'next/head';
+import { useReactToPrint } from 'react-to-print';
+import { QRCodeSVG } from 'qrcode.react';  // Change to direct import
+import { Slider } from "@/components/ui/slider";
 
 const CalendarApp: React.FC = () => {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
@@ -25,6 +28,14 @@ const CalendarApp: React.FC = () => {
   const gesturesEnabled = useSettings((state) => state.gesturesEnabled);
   const touchStartX = useRef<number | null>(null);
   const SWIPE_THRESHOLD = 50;
+  const { 
+    calendarScale, 
+    backgroundImage, 
+    backgroundOpacity,
+    setCalendarScale,
+    setBackgroundImage,
+    setBackgroundOpacity 
+  } = useSettings();
 
   const handlePreviousMonth = () => {
     setCurrentMonth(prev => {
@@ -68,65 +79,165 @@ const CalendarApp: React.FC = () => {
     touchStartX.current = null;
   };
 
+  const calendarRef = useRef<HTMLDivElement>(null);
+
+  const reactToPrintFn = useReactToPrint({
+    // Assert that it's acceptable as Element | Text
+    contentRef: calendarRef as React.RefObject<Element>,
+  });
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setBackgroundImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   return (
     <>
-      <Head>
-        <title>Calie - AI Calendar Assistant</title>
-        <meta name="description" content="A smart AI calendar assistant for you" />
-      </Head>
       <SidebarProvider>
         <AppSidebar>
-          <div className="p-4">
-            <h2 className="text-xl font-semibold mb-4">Events</h2>
+          <div className="p-4 space-y-4">
+          <h3 className="text-sm font-medium">Customization</h3>
+          
+          {/* Calendar Size */}
+          <div className="space-y-2">
+            <span className="text-sm text-muted-foreground">Calendar Size</span>
+            <Slider
+              value={[calendarScale]}
+              onValueChange={(values: number[]) => setCalendarScale(values[0])}
+              min={0.5}
+              max={2}
+              step={0.1}
+              className="w-full"
+            />
+          </div>
+
+          {/* Background Image */}
+          <div className="space-y-2">
+            <span className="text-sm text-muted-foreground">Background Image</span>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFileUpload}
+              className="w-full"
+            />
+            <Button 
+              variant="outline"
+              onClick={() => setBackgroundImage(null)}
+              className="w-full"
+            >
+              Reset Background
+            </Button>
+          </div>
+
+          {/* Background Opacity */}
+          <div className="space-y-2">
+            <span className="text-sm text-muted-foreground">Background Opacity</span>
+            <Slider
+              value={[backgroundOpacity]}
+              onValueChange={(value) => setBackgroundOpacity(value[0])}
+              min={0}
+              max={1}
+              step={0.1}
+              className="w-full"
+            />
+          </div>
+
+          {/* Print Button */}
+          <Button 
+            variant="outline"
+            onClick={() => reactToPrintFn()}  // Wrap in arrow function
+            className="w-full"
+          >
+            Print Calendar
+          </Button>
           </div>
         </AppSidebar>
 
         <SidebarInset>
           {/* Header with trigger */}
 
+          {/* Main calendar content with background */}
+          <div 
+            ref={calendarRef}
+            className="relative flex-1 p-8 overflow-hidden flex flex-col items-center"
+            style={{
+              backgroundImage: backgroundImage ? `url(${backgroundImage})` : undefined,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            }}>
+            {/* Background overlay */}
+            {backgroundImage && (
+              <div
+                className="absolute inset-0"
+                style={{
+                  backgroundColor: 'black',
+                  opacity: backgroundOpacity,
+                }}
+              />
+            )}
 
-          {/* Main content */}
-          <div className="flex-1 p-8 overflow-hidden flex flex-col items-center">
-            {/* Your existing calendar content */}
-            <div className="text-center mb-8 w-full max-w-lg">
-              <h1 className="text-4xl font-bold text-primary mb-2">Calie</h1>
-              <p className="text-gray-600 italic">A smart AI calendar assistant for you</p>
-            </div>
+            {/* Calendar with scaling */}
+            <div
+              className="relative z-10"
+              style={{
+                transform: `scale(${calendarScale})`,
+                transformOrigin: 'center top',
+              }}
+            >
+            {/* Main content */}
+              {/* Your existing calendar content */}
 
-            {/* Calendar Container */}
-            <div className="w-full flex justify-center">
-              <div 
-                onTouchStart={handleTouchStart}
-                onTouchEnd={handleTouchEnd}
-                className="w-full max-w-lg"
-              >
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={(date) => handleDateSelect(date)}
-                  month={currentMonth}
-                  onMonthChange={setCurrentMonth}
-                  className="rounded-md border shadow"
-                  showOutsideDays={false}
-                  disableNavigation={true}
-                  classNames={{
-                    months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
-                    month: "space-y-4 w-full",
-                    table: "w-full border-collapse space-y-1",
-                    head_row: "flex",
-                    head_cell: "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem] flex-1",
-                    row: "flex w-full mt-2",
-                    cell: "text-center text-sm relative focus-within:relative focus-within:z-20 flex-1 p-0", // Removed the accent bg classes
-                    day: "h-9 w-9 p-0 font-normal aria-selected:opacity-100 rounded-md flex items-center justify-center mx-auto",
-                    day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-                    day_today: "bg-accent text-accent-foreground",
-                    day_outside: "text-muted-foreground opacity-50",
-                    day_disabled: "text-muted-foreground opacity-50",
-                    day_hidden: "invisible",
-                  }}
-                />
+
+              {/* Calendar Container */}
+              <div className="w-full flex justify-center">
+                <div 
+                  onTouchStart={handleTouchStart}
+                  onTouchEnd={handleTouchEnd}
+                  className="w-full max-w-lg"
+                >
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={(date) => handleDateSelect(date)}
+                    month={currentMonth}
+                    onMonthChange={setCurrentMonth}
+                    className="rounded-md border shadow"
+                    showOutsideDays={false}
+                    disableNavigation={true}
+                    classNames={{
+                      months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
+                      month: "space-y-4 w-full",
+                      table: "w-full border-collapse space-y-1",
+                      head_row: "flex",
+                      head_cell: "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem] flex-1",
+                      row: "flex w-full mt-2",
+                      cell: "text-center text-sm relative focus-within:relative focus-within:z-20 flex-1 p-0", // Removed the accent bg classes
+                      day: "h-9 w-9 p-0 font-normal aria-selected:opacity-100 rounded-md flex items-center justify-center mx-auto",
+                      day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+                      day_today: "bg-accent text-accent-foreground",
+                      day_outside: "text-muted-foreground opacity-50",
+                      day_disabled: "text-muted-foreground opacity-50",
+                      day_hidden: "invisible",
+                    }}
+                  />
+                </div>
               </div>
             </div>
+
+          {/* Watermark for print */}
+          <div className="watermark hidden print:block">
+            <p className="text-xs mb-1">Calie Calendar</p>
+            <QRCodeSVG
+              value="https://calie.app"
+              size={40}
+            />
+          </div>
           </div>
 
           {/* Bottom Controls */}

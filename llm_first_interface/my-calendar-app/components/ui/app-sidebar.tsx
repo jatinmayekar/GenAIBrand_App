@@ -166,7 +166,7 @@ const data = {
   ],
 }
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({ children, ...props }: React.ComponentProps<typeof Sidebar>) {
     const { 
         gesturesEnabled, 
         themeColor, 
@@ -179,6 +179,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
+        <div className="text-center mb-8 w-full max-w-lg">
+          <h1 className="text-4xl font-bold text-primary mb-2">Calie</h1>
+          <p className="text-gray-600 italic">A smart AI calendar assistant for you</p>
+        </div>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
@@ -231,6 +235,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </div>
           </div>
         </SidebarGroup>
+
+        {children}
+
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={data.user} />
