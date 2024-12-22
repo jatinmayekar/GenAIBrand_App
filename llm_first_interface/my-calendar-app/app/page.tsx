@@ -19,8 +19,6 @@ import { useSettings } from '@/store/settings';
 import { useReactToPrint } from 'react-to-print';
 import { QRCodeSVG } from 'qrcode.react';  // Change to direct import
 import { Slider } from "@/components/ui/slider";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { ChevronUp } from "lucide-react"
 
 const CalendarApp: React.FC = () => {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
@@ -85,11 +83,7 @@ const CalendarApp: React.FC = () => {
   const reactToPrintFn = useReactToPrint({
     // Assert that it's acceptable as Element | Text
     contentRef: calendarRef as React.RefObject<Element>,
-    onBeforePrint: () => {
-      setCalendarScale(1.3);
-      return Promise.resolve();
-    },
-    onAfterPrint: () => setCalendarScale(1),
+    // To print - to right size use 1.3 scale
   });
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -114,7 +108,7 @@ const CalendarApp: React.FC = () => {
           <div className="space-y-2">
             <span className="text-sm text-muted-foreground">Calendar Size</span>
             <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Calendar Size</span>
+            <span className="text-sm text-muted-foreground">Calendar Size (1..3 for print)</span>
             <span className="text-xs text-gray-500">({calendarScale.toFixed(2)})</span>
             </div>
             <Slider
