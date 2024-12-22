@@ -16,10 +16,11 @@ import {
 } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/ui/app-sidebar"
 import { useSettings } from '@/store/settings';
-import Head from 'next/head';
 import { useReactToPrint } from 'react-to-print';
 import { QRCodeSVG } from 'qrcode.react';  // Change to direct import
 import { Slider } from "@/components/ui/slider";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { ChevronUp } from "lucide-react"
 
 const CalendarApp: React.FC = () => {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
@@ -84,6 +85,11 @@ const CalendarApp: React.FC = () => {
   const reactToPrintFn = useReactToPrint({
     // Assert that it's acceptable as Element | Text
     contentRef: calendarRef as React.RefObject<Element>,
+    onBeforePrint: () => {
+      setCalendarScale(1.3);
+      return Promise.resolve();
+    },
+    onAfterPrint: () => setCalendarScale(1),
   });
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -107,6 +113,10 @@ const CalendarApp: React.FC = () => {
           {/* Calendar Size */}
           <div className="space-y-2">
             <span className="text-sm text-muted-foreground">Calendar Size</span>
+            <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Calendar Size</span>
+            <span className="text-xs text-gray-500">({calendarScale.toFixed(2)})</span>
+            </div>
             <Slider
               value={[calendarScale]}
               onValueChange={(values: number[]) => setCalendarScale(values[0])}
@@ -138,6 +148,10 @@ const CalendarApp: React.FC = () => {
           {/* Background Opacity */}
           <div className="space-y-2">
             <span className="text-sm text-muted-foreground">Background Opacity</span>
+            <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Background Opacity</span>
+            <span className="text-xs text-gray-500">({backgroundOpacity.toFixed(2)})</span>
+            </div>
             <Slider
               value={[backgroundOpacity]}
               onValueChange={(value) => setBackgroundOpacity(value[0])}
@@ -165,7 +179,7 @@ const CalendarApp: React.FC = () => {
           {/* Main calendar content with background */}
           <div 
             ref={calendarRef}
-            className="relative flex-1 p-8 overflow-hidden flex flex-col items-center"
+            className= "relative flex-1 flex flex-col items-center"
             style={{
               backgroundImage: backgroundImage ? `url(${backgroundImage})` : undefined,
               backgroundSize: 'cover',
@@ -199,7 +213,7 @@ const CalendarApp: React.FC = () => {
                 <div 
                   onTouchStart={handleTouchStart}
                   onTouchEnd={handleTouchEnd}
-                  className="w-full max-w-lg"
+                  className="w-full " /*max-w-lg*/
                 >
                   <Calendar
                     mode="single"
@@ -207,18 +221,18 @@ const CalendarApp: React.FC = () => {
                     onSelect={(date) => handleDateSelect(date)}
                     month={currentMonth}
                     onMonthChange={setCurrentMonth}
-                    className="rounded-md border shadow"
+                    className="rounded-md"
                     showOutsideDays={false}
                     disableNavigation={true}
                     classNames={{
                       months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
                       month: "space-y-4 w-full",
-                      table: "w-full border-collapse space-y-1",
+                      table: "w-full border-collapse",
                       head_row: "flex",
-                      head_cell: "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem] flex-1",
-                      row: "flex w-full mt-2",
-                      cell: "text-center text-sm relative focus-within:relative focus-within:z-20 flex-1 p-0", // Removed the accent bg classes
-                      day: "h-9 w-9 p-0 font-normal aria-selected:opacity-100 rounded-md flex items-center justify-center mx-auto",
+                      head_cell: "calendar-head-cell text-muted-foreground w-9 font-normal text-[0.8rem] flex-1",
+                      row: "flex w-full",
+                      cell: "calendar-cell text-center text-sm relative focus-within:relative focus-within:z-20 flex-1 p-0", // Removed the accent bg classes
+                      day: "h-24 w-32 p-0 font-normal aria-selected:opacity-100 rounded-md flex items-center justify-center mx-auto",
                       day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
                       day_today: "bg-accent text-accent-foreground",
                       day_outside: "text-muted-foreground opacity-50",
@@ -232,12 +246,14 @@ const CalendarApp: React.FC = () => {
 
           {/* Watermark for print */}
           <div className="watermark hidden print:block">
-            <p className="text-xs mb-1">Calie Calendar</p>
+            <p className="text-xs inline-block mr-2 align-top">Calie</p>
             <QRCodeSVG
               value="https://calie.app"
               size={40}
+              className="inline-block align-top"
             />
           </div>
+
           </div>
 
           {/* Bottom Controls */}
