@@ -4,7 +4,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
-  Mic, 
+  Mic,
   ChevronLeft, 
   ChevronRight, 
   PanelRightClose
@@ -52,6 +52,8 @@ const CalendarApp: React.FC = () => {
     setBackgroundOpacity,
     themeColor, 
     themeMode,
+    textColor,
+    setTextColor,
     setGesturesEnabled, 
     setThemeColor,
     setThemeMode 
@@ -170,63 +172,86 @@ const CalendarApp: React.FC = () => {
               </Button>
             </div>
 
-          {/* Calendar Size */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm">Calendar Size</span>
+            {/* Calendar Size */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Calendar Size</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">(1.3 for print)</span>
+                <span className="text-xs text-gray-500">({calendarScale.toFixed(2)})</span>
+              </div>
+              <Slider
+                value={[calendarScale]}
+                onValueChange={(values: number[]) => setCalendarScale(values[0])}
+                min={0.5}
+                max={2}
+                step={0.1}
+                className="w-full"
+              />
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">(1.3 for print)</span>
-              <span className="text-xs text-gray-500">({calendarScale.toFixed(2)})</span>
-            </div>
-            <Slider
-              value={[calendarScale]}
-              onValueChange={(values: number[]) => setCalendarScale(values[0])}
-              min={0.5}
-              max={2}
-              step={0.1}
-              className="w-full"
-            />
-          </div>
 
-          {/* Background Image */}
-          <div className="space-y-2">
-            <span className="text-sm">Background Image</span>
-            <Input
-              type="file"
-              accept="image/*"
-              onChange={handleFileUpload}
-            />
+            {/* Background Image */}
+            <div className="space-y-2">
+              <span className="text-sm">Background Image</span>
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={handleFileUpload}
+              />
+              <Button 
+                variant="outline"
+                onClick={() => setBackgroundImage(null)}
+              >
+                Reset Background
+              </Button>
+            </div>
+
+            {/* Background Opacity */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+              <span className="text-sm">Background Opacity</span>
+              <span className="text-xs text-gray-500">({backgroundOpacity.toFixed(2)})</span>
+              </div>
+              <Slider
+                value={[backgroundOpacity]}
+                onValueChange={(value) => setBackgroundOpacity(value[0])}
+                min={0}
+                max={1}
+                step={0.1}
+              />
+            </div>
+
+            {/* Add Text Color selector after Theme Color */}
+            <div className="space-y-2">
+              <span className="text-sm">Text Color</span>
+              <Select
+                value={textColor}
+                onValueChange={setTextColor}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select text color" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="black">Black</SelectItem>
+                  <SelectItem value="white">White</SelectItem>
+                  <SelectItem value="gray">Gray</SelectItem>
+                  <SelectItem value="red">Red</SelectItem>
+                  <SelectItem value="blue">Blue</SelectItem>
+                  <SelectItem value="green">Green</SelectItem>
+                  <SelectItem value="yellow">Yellow</SelectItem>
+                  <SelectItem value="purple">Purple</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Print Button */}
             <Button 
               variant="outline"
-              onClick={() => setBackgroundImage(null)}
+              onClick={() => reactToPrintFn()}  // Wrap in arrow function
             >
-              Reset Background
+              Print Calendar
             </Button>
-          </div>
-
-          {/* Background Opacity */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-            <span className="text-sm">Background Opacity</span>
-            <span className="text-xs text-gray-500">({backgroundOpacity.toFixed(2)})</span>
-            </div>
-            <Slider
-              value={[backgroundOpacity]}
-              onValueChange={(value) => setBackgroundOpacity(value[0])}
-              min={0}
-              max={1}
-              step={0.1}
-            />
-          </div>
-
-          {/* Print Button */}
-          <Button 
-            variant="outline"
-            onClick={() => reactToPrintFn()}  // Wrap in arrow function
-          >
-            Print Calendar
-          </Button>
           </div>
         </SidebarGroup>
         </AppSidebar>
@@ -242,6 +267,7 @@ const CalendarApp: React.FC = () => {
               backgroundImage: backgroundImage ? `url(${backgroundImage})` : undefined,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
+              color: textColor
             }}>
             {/* Background overlay */}
             {backgroundImage && (
@@ -263,9 +289,6 @@ const CalendarApp: React.FC = () => {
               }}
             >
             {/* Main content */}
-              {/* Your existing calendar content */}
-
-
               {/* Calendar Container */}
               <div className="w-full flex justify-center">
                 <div 
@@ -284,7 +307,9 @@ const CalendarApp: React.FC = () => {
                     disableNavigation={true}
                     classNames={{
                       months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
-                      month: "space-y-4 w-full",
+                      month: "space-y-8 w-full", // Increased spacing from 4 to 8
+                      caption: "flex justify-center pt-1 relative items-center mb-4", // Added margin bottom
+                      caption_label: "text-2xl font-medium", // Increased text size
                       table: "w-full border-collapse",
                       head_row: "flex",
                       head_cell: "calendar-head-cell text-sm w-9 font-normal text-[0.8rem] flex-1",
@@ -317,15 +342,13 @@ const CalendarApp: React.FC = () => {
           {/* Bottom Controls */}
           <div className="border-t bg-background p-4">
             <div className="mx-auto max-w-lg space-y-4">
-              {/* Controls Row */}
-              <div className="flex justify-between items-center">
-                <div className="flex gap-2">
+              {/* Chat Interface */}
+              <div className="flex gap-2">
+                <SidebarTrigger className="h-9 w-9 flex items-center justify-center rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground">
+                  <PanelRightClose className="h-4 w-4" />
+                </SidebarTrigger>
 
-                  <SidebarTrigger className="h-9 w-9 flex items-center justify-center rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground">
-                    <PanelRightClose className="h-4 w-4" />
-                  </SidebarTrigger>
-
-                  <Button 
+                <Button 
                     variant="outline" 
                     size="icon"
                     onClick={handlePreviousMonth}
@@ -342,17 +365,14 @@ const CalendarApp: React.FC = () => {
                   >
                     <ChevronRight className="h-4 w-4" />
                   </Button>
-                </div>
-              </div>
 
-              {/* Chat Interface */}
-              <div className="flex gap-2">
                 <Input 
                   placeholder="Type your message..."
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   className="flex-1"
                 />
+
                 <Button variant="outline" size="icon">
                   <Mic className="h-4 w-4" />
                 </Button>

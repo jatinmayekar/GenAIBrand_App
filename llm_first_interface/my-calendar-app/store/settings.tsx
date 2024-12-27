@@ -10,6 +10,7 @@ interface SettingsStore {
   calendarScale: number;
   backgroundImage: string | null;
   backgroundOpacity: number;
+  textColor: string;
 
   setGesturesEnabled: (enabled: boolean) => void;
   setThemeColor: (color: ThemeColor) => void;
@@ -17,6 +18,7 @@ interface SettingsStore {
   setCalendarScale: (scale: number) => void;
   setBackgroundImage: (image: string | null) => void;
   setBackgroundOpacity: (opacity: number) => void;
+  setTextColor: (color: string) => void;
 }
 
 export const useSettings = create<SettingsStore>((set) => ({
@@ -26,6 +28,7 @@ export const useSettings = create<SettingsStore>((set) => ({
   calendarScale: 1,
   backgroundImage: null,
   backgroundOpacity: 0.5,
+  textColor: 'black',
 
   setGesturesEnabled: (enabled) => set({ gesturesEnabled: enabled }),
   setThemeColor: (color) => set({ themeColor: color }),
@@ -33,4 +36,5 @@ export const useSettings = create<SettingsStore>((set) => ({
   setCalendarScale: (scale) => set({ calendarScale: scale }),
   setBackgroundImage: (image) => set({ backgroundImage: image }),
   setBackgroundOpacity: (opacity) => set({ backgroundOpacity: opacity }),
+  setTextColor: (color) => set({ textColor: color})
 }));
