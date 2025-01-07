@@ -120,11 +120,45 @@ const CalendarApp: React.FC = () => {
     }
   };
 
+  // Add events data
+  const events = {
+    "2025-01-10": [
+      { title: "Team Meeting", time: "10:00 AM" },
+      { title: "Project Review", time: "2:00 PM" },
+      { title: "Client Call", time: "4:00 PM" },
+    ],
+    "2025-01-15": [
+      { title: "Product Launch", time: "11:00 AM" },
+      { title: "Marketing Sync", time: "1:00 PM" },
+      { title: "Sprint Planning", time: "3:00 PM" },
+    ],
+    "2025-01-20": [
+      { title: "Budget Review", time: "9:00 AM" },
+      { title: "Team Training", time: "2:00 PM" },
+      { title: "Weekly Wrap-up", time: "4:30 PM" },
+    ],
+    "2025-01-05": [
+      { title: "Monthly Planning", time: "9:30 AM" },
+      { title: "Team Breakfast", time: "8:00 AM" },
+      { title: "Code Review", time: "2:00 PM" },
+    ],
+    "2025-01-25": [
+      { title: "Tech Talk", time: "1:00 PM" },
+      { title: "Design Review", time: "3:00 PM" },
+      { title: "Team Social", time: "5:00 PM" },
+    ]
+  }
+
+  // Add double click handler
+  const handleDoubleClick = (date: Date) => {
+    setSelectedDate(date);
+  };
+
   return (
       <SidebarProvider>
         <AppSidebar>
         <SidebarGroup>
-          <div className="space-y-6 p-4">
+          <div className="space-y-6 p-4 relative z-50 bg-background/80 backdrop-blur-sm h-full">
             {/* Gesture Controls */}
             <div className="flex items-center justify-between">
               <span className="text-sm">Gesture Controls</span>
@@ -257,16 +291,14 @@ const CalendarApp: React.FC = () => {
         </AppSidebar>
 
         <SidebarInset>
-          {/* Header with trigger */}
-
-          {/* Main calendar content with background */}
           <div 
             ref={calendarRef}
-            className= "calendar-print relative flex-1 flex flex-col items-center"
+            className="calendar-print relative flex-1 flex flex-col items-center min-h-screen"
             style={{
               backgroundImage: backgroundImage ? `url(${backgroundImage})` : undefined,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
+              backgroundAttachment: 'fixed',
               color: textColor
             }}>
             {/* Background overlay */}
@@ -280,26 +312,19 @@ const CalendarApp: React.FC = () => {
               />
             )}
 
-            {/* Calendar with scaling */}
-            <div
-              className="relative z-10"
-              style={{
-                transform: `scale(${calendarScale})`,
-                transformOrigin: 'center top',
-              }}
-            >
-            {/* Main content */}
+            {/* Calendar content */}
+            <div className="relative z-10 w-full flex-1">
               {/* Calendar Container */}
               <div className="w-full flex justify-center">
                 <div 
                   onTouchStart={handleTouchStart}
                   onTouchEnd={handleTouchEnd}
-                  className="w-full " /*max-w-lg*/
+                  className="w-full"
                 >
                   <Calendar
                     mode="single"
                     selected={selectedDate}
-                    onSelect={(date) => handleDateSelect(date)}
+                    onSelect={handleDateSelect}
                     month={currentMonth}
                     onMonthChange={setCurrentMonth}
                     className="rounded-md"
@@ -307,76 +332,114 @@ const CalendarApp: React.FC = () => {
                     disableNavigation={true}
                     classNames={{
                       months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
-                      month: "space-y-8 w-full", // Increased spacing from 4 to 8
-                      caption: "flex justify-center pt-1 relative items-center mb-4", // Added margin bottom
-                      caption_label: "text-2xl font-medium", // Increased text size
+                      month: "space-y-4 w-full",
+                      caption: "flex justify-center pt-1 relative items-center mb-4",
+                      caption_label: "text-xl font-bold",
                       table: "w-full border-collapse",
                       head_row: "flex",
-                      head_cell: "calendar-head-cell text-sm w-9 font-normal text-[0.8rem] flex-1",
-                      row: "flex w-full",
-                      cell: "calendar-cell text-center text-sm relative focus-within:relative focus-within:z-20 flex-1 p-0", // Removed the accent bg classes
-                      day: "day h-24 w-32 p-0 font-normal aria-selected:opacity-100 rounded-md flex items-center justify-center mx-auto",
-                      day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-                      day_today: "bg-accent text-accent-foreground",
+                      head_cell: "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem] flex-1 text-left pl-2",
+                      row: "flex w-full mt-2",
+                      cell: "h-24 w-32 relative p-0 text-left text-sm flex-1",
+                      day: "h-full w-full p-2 flex flex-col hover:bg-accent/10 rounded-lg transition-colors",
+                      day_selected: "bg-primary/15 hover:bg-primary/20 transition-colors",
+                      day_today: "bg-accent/20 ring-2 ring-primary",
                       day_outside: "text-muted-foreground opacity-50",
                       day_disabled: "text-muted-foreground opacity-50",
                       day_hidden: "invisible",
+                    }}
+                    components={{
+                      Day: ({ date, ...props }) => (
+                        <div 
+                          {...props} 
+                          className={`h-full w-full p-2 rounded-lg transition-colors ${
+                            date?.toDateString() === selectedDate?.toDateString() 
+                              ? 'bg-primary/15 hover:bg-primary/20' 
+                              : 'hover:bg-accent/10'
+                          } ${
+                            date?.toDateString() === new Date().toDateString() 
+                              ? 'ring-2 ring-primary' 
+                              : ''
+                          }`}
+                          onDoubleClick={() => date && handleDoubleClick(date)}
+                        >
+                          <div className={`text-left font-medium pl-1 ${
+                            date?.toDateString() === new Date().toDateString() 
+                              ? 'text-primary font-bold' 
+                              : ''
+                          }`}>
+                            {date?.getDate()}
+                          </div>
+                          {date && events[date.toISOString().split('T')[0]]?.map((event, idx) => (
+                            <div 
+                              key={idx}
+                              className="text-xs rounded px-1 py-0.5 mb-0.5 truncate hover:bg-accent/10 transition-colors"
+                              title={`${event.title} - ${event.time}`}
+                            >
+                              {event.time.split(' ')[0]} {event.title}
+                            </div>
+                          ))}
+                        </div>
+                      )
                     }}
                   />
                 </div>
               </div>
             </div>
 
-          {/* Watermark for print */}
-          <div className="watermark hidden print:block">
-            <p className="text-xs inline-block mr-2 align-top">Calie</p>
-            <QRCodeSVG
-              value="https://calie.app"
-              size={40}
-              className="inline-block align-top"
-            />
-          </div>
+            {/* Bottom Controls - Updated styling */}
+            <div className="relative z-10 w-full">
+              <div className="p-4">
+                <div className="mx-auto max-w-lg space-y-4">
+                  <div className="flex gap-2">
+                    <SidebarTrigger className="h-9 w-9 flex items-center justify-center rounded-md border border-input bg-background/50 hover:bg-accent/50 hover:text-accent-foreground backdrop-blur-sm">
+                      <PanelRightClose className="h-4 w-4" />
+                    </SidebarTrigger>
 
-          </div>
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      onClick={handlePreviousMonth}
+                      className="bg-background/50 backdrop-blur-sm hover:bg-accent/50"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
 
-          {/* Bottom Controls */}
-          <div className="border-t bg-background p-4">
-            <div className="mx-auto max-w-lg space-y-4">
-              {/* Chat Interface */}
-              <div className="flex gap-2">
-                <SidebarTrigger className="h-9 w-9 flex items-center justify-center rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground">
-                  <PanelRightClose className="h-4 w-4" />
-                </SidebarTrigger>
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      onClick={handleNextMonth}
+                      className="bg-background/50 backdrop-blur-sm hover:bg-accent/50"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
 
-                <Button 
-                    variant="outline" 
-                    size="icon"
-                    onClick={handlePreviousMonth}
-                    className='bg-background'
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
+                    <Input 
+                      placeholder="Type your message..."
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      className="flex-1 bg-background/50 backdrop-blur-sm"
+                    />
 
-                  <Button 
-                    variant="outline" 
-                    size="icon"
-                    onClick={handleNextMonth}
-                    className='bg-background'
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-
-                <Input 
-                  placeholder="Type your message..."
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  className="flex-1"
-                />
-
-                <Button variant="outline" size="icon">
-                  <Mic className="h-4 w-4" />
-                </Button>
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      className="bg-background/50 backdrop-blur-sm hover:bg-accent/50"
+                    >
+                      <Mic className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
               </div>
+            </div>
+
+            {/* Watermark remains the same */}
+            <div className="watermark hidden print:block">
+              <p className="text-xs inline-block mr-2 align-top">Calie</p>
+              <QRCodeSVG
+                value="https://calie.app"
+                size={40}
+                className="inline-block align-top"
+              />
             </div>
           </div>
         </SidebarInset>
