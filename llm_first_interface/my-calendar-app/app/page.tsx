@@ -157,28 +157,25 @@ const CalendarApp: React.FC = () => {
   return (
       <SidebarProvider>
         <AppSidebar>
-        <SidebarGroup>
-          <div className="space-y-6 p-4 relative z-50 bg-background/80 backdrop-blur-sm h-full">
+          <div className="space-y-6 p-4 relative z-50">
             {/* Gesture Controls */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between bg-background/20 backdrop-blur-sm p-3 rounded-lg">
               <span className="text-sm">Gesture Controls</span>
               <Switch
                 checked={gesturesEnabled}
                 onCheckedChange={setGesturesEnabled}
+                className="bg-background/50"
               />
             </div>
 
             {/* Theme Color */}
-            <div className="space-y-2">
+            <div className="space-y-2 bg-background/20 backdrop-blur-sm p-3 rounded-lg">
               <span className="text-sm">Theme Color</span>
-              <Select
-                value={themeColor}
-                onValueChange={setThemeColor}
-              >
-                <SelectTrigger>
+              <Select value={themeColor} onValueChange={setThemeColor}>
+                <SelectTrigger className="bg-background/50 backdrop-blur-sm">
                   <SelectValue placeholder="Select color" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-background/50 backdrop-blur-sm">
                   <SelectItem value="zinc">Zinc</SelectItem>
                   <SelectItem value="red">Red</SelectItem>
                   <SelectItem value="rose">Rose</SelectItem>
@@ -192,12 +189,13 @@ const CalendarApp: React.FC = () => {
             </div>
 
             {/* Theme Mode */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between bg-background/20 backdrop-blur-sm p-3 rounded-lg">
               <span className="text-sm">Theme Mode</span>
               <Button
                 variant="outline"
                 size="icon"
                 onClick={() => setThemeMode(themeMode === 'light' ? 'dark' : 'light')}
+                className="bg-background/50 backdrop-blur-sm"
               >
                 {themeMode === 'light' ? 
                   <Sun className="h-4 w-4" /> : 
@@ -207,13 +205,10 @@ const CalendarApp: React.FC = () => {
             </div>
 
             {/* Calendar Size */}
-            <div className="space-y-2">
+            <div className="space-y-2 bg-background/20 backdrop-blur-sm p-3 rounded-lg">
               <div className="flex items-center justify-between">
                 <span className="text-sm">Calendar Size</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">(1.3 for print)</span>
-                <span className="text-xs text-gray-500">({calendarScale.toFixed(2)})</span>
+                <span className="text-xs text-muted-foreground">({calendarScale.toFixed(2)})</span>
               </div>
               <Slider
                 value={[calendarScale]}
@@ -226,26 +221,28 @@ const CalendarApp: React.FC = () => {
             </div>
 
             {/* Background Image */}
-            <div className="space-y-2">
+            <div className="space-y-2 bg-background/20 backdrop-blur-sm p-3 rounded-lg">
               <span className="text-sm">Background Image</span>
               <Input
                 type="file"
                 accept="image/*"
                 onChange={handleFileUpload}
+                className="bg-background/50 backdrop-blur-sm"
               />
               <Button 
                 variant="outline"
                 onClick={() => setBackgroundImage(null)}
+                className="w-full bg-background/50 backdrop-blur-sm"
               >
                 Reset Background
               </Button>
             </div>
 
             {/* Background Opacity */}
-            <div className="space-y-2">
+            <div className="space-y-2 bg-background/20 backdrop-blur-sm p-3 rounded-lg">
               <div className="flex items-center justify-between">
-              <span className="text-sm">Background Opacity</span>
-              <span className="text-xs text-gray-500">({backgroundOpacity.toFixed(2)})</span>
+                <span className="text-sm">Background Opacity</span>
+                <span className="text-xs text-muted-foreground">({backgroundOpacity.toFixed(2)})</span>
               </div>
               <Slider
                 value={[backgroundOpacity]}
@@ -256,17 +253,14 @@ const CalendarApp: React.FC = () => {
               />
             </div>
 
-            {/* Add Text Color selector after Theme Color */}
-            <div className="space-y-2">
+            {/* Text Color */}
+            <div className="space-y-2 bg-background/20 backdrop-blur-sm p-3 rounded-lg">
               <span className="text-sm">Text Color</span>
-              <Select
-                value={textColor}
-                onValueChange={setTextColor}
-              >
-                <SelectTrigger>
+              <Select value={textColor} onValueChange={setTextColor}>
+                <SelectTrigger className="bg-background/50 backdrop-blur-sm">
                   <SelectValue placeholder="Select text color" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-background/50 backdrop-blur-sm">
                   <SelectItem value="black">Black</SelectItem>
                   <SelectItem value="white">White</SelectItem>
                   <SelectItem value="gray">Gray</SelectItem>
@@ -282,12 +276,12 @@ const CalendarApp: React.FC = () => {
             {/* Print Button */}
             <Button 
               variant="outline"
-              onClick={() => reactToPrintFn()}  // Wrap in arrow function
+              onClick={() => reactToPrintFn()}
+              className="w-full bg-background/50 backdrop-blur-sm"
             >
               Print Calendar
             </Button>
           </div>
-        </SidebarGroup>
         </AppSidebar>
 
         <SidebarInset>

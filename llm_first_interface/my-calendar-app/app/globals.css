@@ -623,8 +623,8 @@ body {
   position: fixed;
   height: 100%;
   z-index: 50;
-  background-color: hsl(var(--background)/0.8); /* Semi-transparent background */
-  backdrop-filter: blur(8px); /* Adds frosted glass effect */
+  background: transparent;
+  backdrop-filter: blur(8px);
 }
 
 /* Add this to handle the collapsed state */
@@ -642,4 +642,13 @@ body {
 /* Remove any conflicting transitions from other elements */
 .calendar-cell, .calendar-event {
   transition: background-color 0.2s ease;
+}
+
+/* Add these to your existing styles */
+.sidebar-control {
+  @apply bg-background/20 backdrop-blur-sm transition-colors;
+}
+
+.sidebar-input {
+  @apply bg-background/50 backdrop-blur-sm border-background/20;
 }
