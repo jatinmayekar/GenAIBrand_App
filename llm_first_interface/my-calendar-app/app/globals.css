@@ -688,3 +688,128 @@ body {
 .sidebar-content > div {
   background: transparent;
 }
+
+/* Add these to your existing styles */
+.color-square {
+  @apply w-4 h-4 rounded-sm inline-block;
+  border: 1px solid var(--border);
+}
+
+/* Add specific styles for white color square */
+.color-square-white {
+  @apply border-gray-200;
+}
+
+/* Add hover effect for color squares */
+.color-square:hover {
+  @apply opacity-80;
+}
+
+/* Add these styles for the theme color selector */
+.theme-color-grid {
+  @apply grid grid-cols-4 gap-1 p-1;
+}
+
+.theme-color-item {
+  @apply p-0 m-0 h-6 w-6;
+}
+
+.theme-color-item:focus,
+.theme-color-item[data-highlighted] {
+  @apply bg-transparent;
+}
+
+.theme-color-swatch {
+  @apply w-6 h-6 rounded-sm transition-opacity;
+}
+
+.theme-color-swatch:hover {
+  @apply opacity-80;
+}
+
+/* Update the SelectContent styles */
+[role="listbox"] {
+  @apply p-0;
+}
+
+/* Remove focus rings from color swatches */
+.theme-color-swatch:focus {
+  @apply outline-none ring-0;
+}
+
+/* Add these styles for consistent icon appearance */
+.sidebar-content [class*="button"] svg,
+.sidebar-content [class*="select"] svg {
+  @apply h-4 w-4 text-foreground opacity-80;
+}
+
+.sidebar-content [class*="button"]:hover svg,
+.sidebar-content [class*="select"]:hover svg {
+  @apply opacity-100;
+}
+
+/* Update the SelectTrigger styles */
+.sidebar-content [class*="select-trigger"] {
+  @apply flex items-center justify-center w-10 h-10 p-0;
+}
+
+/* Add these styles for consistent button appearance */
+.sidebar-content [class*="select-trigger"] {
+  @apply flex items-center justify-center w-10 h-10 p-0;
+}
+
+/* Remove dropdown arrows */
+.sidebar-content [class*="select-trigger"] :where(.select-trigger-icon) {
+  display: none;
+}
+
+/* Hide the default select arrow */
+.sidebar-content [class*="select-trigger"]::after {
+  content: none !important;
+}
+
+/* Ensure consistent icon sizing */
+.sidebar-content [class*="button"] svg,
+.sidebar-content [class*="select-trigger"] svg {
+  @apply h-4 w-4 text-foreground opacity-80;
+}
+
+/* Consistent hover states for icons */
+.sidebar-content [class*="button"]:hover svg,
+.sidebar-content [class*="select-trigger"]:hover svg {
+  @apply opacity-100;
+}
+
+/* Remove any padding that might affect icon positioning */
+.sidebar-content [class*="select-trigger"] > :first-child:not(svg) {
+  margin: 0;
+}
+
+/* Add these styles for dropdown menus */
+[role="menuitem"] {
+  @apply focus:bg-transparent hover:bg-transparent;
+}
+
+[data-radix-popper-content-wrapper] {
+  @apply backdrop-blur-sm;
+}
+
+.dropdown-menu-content {
+  @apply border-none bg-transparent shadow-none;
+}
+
+/* Remove any dropdown arrows */
+[class*="select-trigger"]::after,
+[class*="select-trigger"] svg,
+[class*="dropdown-menu"] svg {
+  display: none !important;
+}
+
+/* Add these styles for the checkmark */
+[role="menuitem"] .text-white {
+  @apply opacity-90;
+}
+
+[role="menuitem"]:hover .text-white {
+  @apply opacity-100;
+}

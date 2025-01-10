@@ -13,7 +13,10 @@ import {
   Image as ImageIcon,
   RotateCcw,
   Printer,
-  Type
+  Type,
+  Palette,
+  Square,
+  Check
 } from 'lucide-react';
 import {
   SidebarInset,
@@ -42,6 +45,13 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu"
 
 const CalendarApp: React.FC = () => {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
@@ -162,26 +172,48 @@ const CalendarApp: React.FC = () => {
           <div className="space-y-4 p-4 relative z-50">
             {/* Theme Controls Row */}
             <div className="flex items-center space-x-4 h-10">
-              <Select value={themeColor} onValueChange={setThemeColor}>
+              <DropdownMenu>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <SelectTrigger className="w-[120px] border-0 bg-transparent">
-                      <SelectValue placeholder="Theme" />
-                    </SelectTrigger>
+                    <DropdownMenuTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        className="w-10 h-10 p-0 hover:bg-transparent"
+                      >
+                        <Palette className="h-4 w-4" />
+                        <span className="sr-only">Change theme color</span>
+                      </Button>
+                    </DropdownMenuTrigger>
                   </TooltipTrigger>
                   <TooltipContent>Change theme color</TooltipContent>
                 </Tooltip>
-                <SelectContent>
-                  <SelectItem value="zinc">Zinc</SelectItem>
-                  <SelectItem value="red">Red</SelectItem>
-                  <SelectItem value="rose">Rose</SelectItem>
-                  <SelectItem value="orange">Orange</SelectItem>
-                  <SelectItem value="green">Green</SelectItem>
-                  <SelectItem value="blue">Blue</SelectItem>
-                  <SelectItem value="yellow">Yellow</SelectItem>
-                  <SelectItem value="violet">Violet</SelectItem>
-                </SelectContent>
-              </Select>
+                <DropdownMenuContent className="min-w-0 w-[120px] p-1">
+                  <div className="grid grid-cols-4 gap-1">
+                    {[
+                      { value: "zinc", color: "bg-zinc-500" },
+                      { value: "red", color: "bg-red-500" },
+                      { value: "rose", color: "bg-rose-500" },
+                      { value: "orange", color: "bg-orange-500" },
+                      { value: "green", color: "bg-green-500" },
+                      { value: "blue", color: "bg-blue-500" },
+                      { value: "yellow", color: "bg-yellow-500" },
+                      { value: "violet", color: "bg-violet-500" },
+                    ].map((item) => (
+                      <DropdownMenuItem
+                        key={item.value}
+                        className="p-0 m-0 h-6 w-6 focus:bg-transparent relative"
+                        onClick={() => setThemeColor(item.value as any)}
+                      >
+                        <div className={`w-6 h-6 rounded-sm ${item.color} hover:opacity-80 transition-opacity flex items-center justify-center`}>
+                          {themeColor === item.value && (
+                            <Check className="h-3 w-3 text-white" />
+                          )}
+                        </div>
+                      </DropdownMenuItem>
+                    ))}
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -254,27 +286,45 @@ const CalendarApp: React.FC = () => {
 
             {/* Text Controls and Print */}
             <div className="flex items-center space-x-4 h-10">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Select value={textColor} onValueChange={setTextColor}>
+              <Select value={textColor} onValueChange={setTextColor}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
                     <SelectTrigger className="w-[120px] border-0 bg-transparent">
                       <Type className="h-4 w-4 mr-2" />
-                      <SelectValue placeholder="Text color" />
+                      <SelectValue>
+                        <div className="w-4 h-4 rounded-sm" style={{ backgroundColor: textColor }} />
+                      </SelectValue>
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="black">Black</SelectItem>
-                      <SelectItem value="white">White</SelectItem>
-                      <SelectItem value="gray">Gray</SelectItem>
-                      <SelectItem value="red">Red</SelectItem>
-                      <SelectItem value="blue">Blue</SelectItem>
-                      <SelectItem value="green">Green</SelectItem>
-                      <SelectItem value="yellow">Yellow</SelectItem>
-                      <SelectItem value="purple">Purple</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </TooltipTrigger>
-                <TooltipContent>Change text color</TooltipContent>
-              </Tooltip>
+                  </TooltipTrigger>
+                  <TooltipContent>Change text color</TooltipContent>
+                </Tooltip>
+                <SelectContent>
+                  <SelectItem value="black">
+                    <div className="w-4 h-4 rounded-sm bg-black" />
+                  </SelectItem>
+                  <SelectItem value="white">
+                    <div className="w-4 h-4 rounded-sm bg-white border border-gray-200" />
+                  </SelectItem>
+                  <SelectItem value="gray">
+                    <div className="w-4 h-4 rounded-sm bg-gray-500" />
+                  </SelectItem>
+                  <SelectItem value="red">
+                    <div className="w-4 h-4 rounded-sm bg-red-500" />
+                  </SelectItem>
+                  <SelectItem value="blue">
+                    <div className="w-4 h-4 rounded-sm bg-blue-500" />
+                  </SelectItem>
+                  <SelectItem value="green">
+                    <div className="w-4 h-4 rounded-sm bg-green-500" />
+                  </SelectItem>
+                  <SelectItem value="yellow">
+                    <div className="w-4 h-4 rounded-sm bg-yellow-500" />
+                  </SelectItem>
+                  <SelectItem value="purple">
+                    <div className="w-4 h-4 rounded-sm bg-purple-500" />
+                  </SelectItem>
+                </SelectContent>
+              </Select>
 
               <Tooltip>
                 <TooltipTrigger asChild>
