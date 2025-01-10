@@ -652,3 +652,39 @@ body {
 .sidebar-input {
   @apply bg-background/50 backdrop-blur-sm border-background/20;
 }
+
+/* Add these styles at the end of your globals.css */
+
+/* Remove backgrounds and borders from controls */
+.sidebar-content [class*="button"],
+.sidebar-content [class*="select"],
+.sidebar-content [class*="input"] {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+/* Consistent hover states */
+.sidebar-content [class*="button"]:hover,
+.sidebar-content [class*="select"]:hover {
+  background: var(--accent);
+  opacity: 0.8;
+}
+
+/* Tooltip styles */
+.tooltip-content {
+  background: transparent;
+  border: none;
+  backdrop-filter: blur(8px);
+}
+
+/* Slider thumb styles */
+.slider-thumb {
+  background: var(--primary);
+  border: none;
+}
+
+/* Remove container backgrounds */
+.sidebar-content > div {
+  background: transparent;
+}

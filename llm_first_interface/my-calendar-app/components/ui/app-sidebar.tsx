@@ -12,7 +12,18 @@ import {
   PieChart,
   Settings2,
   SquareTerminal,
+  Sun,
+  Moon,
+  Image as ImageIcon,
+  RotateCcw,
+  Printer
 } from "lucide-react"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 import { NavUser } from "@/components/ui/nav-user"
 import {
@@ -155,20 +166,22 @@ const data = {
 
 export function AppSidebar({ children, ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
-    <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader>
-        <div className="text-center mb-8 w-full max-w-lg">
-          <h1 className="text-4xl font-bold text-primary mb-2">Calie</h1>
-          <p className="text-gray-600 italic">A smart AI calendar assistant for you</p>
-        </div>
-      </SidebarHeader>
-      <SidebarContent>
-        {children}
-      </SidebarContent>
-      <SidebarFooter>
-        <NavUser user={data.user} />
-      </SidebarFooter>
-      <SidebarRail />
-    </Sidebar>
+    <TooltipProvider delayDuration={1500}>
+      <Sidebar collapsible="icon" {...props}>
+        <SidebarHeader>
+          <div className="text-center mb-8 w-full max-w-lg">
+            <h1 className="text-4xl font-bold text-primary mb-2">Calie</h1>
+            <p className="text-gray-600 italic">A smart AI calendar assistant for you</p>
+          </div>
+        </SidebarHeader>
+        <SidebarContent>
+          {children}
+        </SidebarContent>
+        <SidebarFooter>
+          <NavUser user={data.user} />
+        </SidebarFooter>
+        <SidebarRail />
+      </Sidebar>
+    </TooltipProvider>
   )
 }

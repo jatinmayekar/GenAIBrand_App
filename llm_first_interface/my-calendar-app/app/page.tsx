@@ -7,7 +7,13 @@ import {
   Mic,
   ChevronLeft, 
   ChevronRight, 
-  PanelRightClose
+  PanelRightClose,
+  Sun,
+  Moon,
+  Image as ImageIcon,
+  RotateCcw,
+  Printer,
+  Type
 } from 'lucide-react';
 import {
   SidebarInset,
@@ -21,7 +27,6 @@ import { QRCodeSVG } from 'qrcode.react';  // Change to direct import
 import { Slider } from "@/components/ui/slider"
 import {
   SidebarGroup,
-
 } from "@/components/ui/sidebar"
 import { Switch } from "@/components/ui/switch";
 import {
@@ -31,33 +36,31 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
 import {
-  Sun,
-  Moon,
-} from "lucide-react"
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 const CalendarApp: React.FC = () => {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [message, setMessage] = useState<string>('');
-  const gesturesEnabled = useSettings((state) => state.gesturesEnabled);
-  const touchStartX = useRef<number | null>(null);
-  const SWIPE_THRESHOLD = 50;
   const { 
-    calendarScale, 
     backgroundImage, 
     backgroundOpacity,
-    setCalendarScale,
     setBackgroundImage,
     setBackgroundOpacity,
     themeColor, 
     themeMode,
     textColor,
     setTextColor,
-    setGesturesEnabled, 
     setThemeColor,
     setThemeMode 
   } = useSettings();
+  const touchStartX = useRef<number | null>(null);
+  const SWIPE_THRESHOLD = 50;
 
   const handlePreviousMonth = () => {
     setCurrentMonth(prev => {
@@ -81,12 +84,11 @@ const CalendarApp: React.FC = () => {
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (!gesturesEnabled) return;
     touchStartX.current = e.touches[0].clientX;
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
-    if (!gesturesEnabled || !touchStartX.current) return;
+    if (!touchStartX.current) return;
     
     const touchEndX = e.changedTouches[0].clientX;
     const swipeDistance = touchEndX - touchStartX.current;
@@ -157,25 +159,19 @@ const CalendarApp: React.FC = () => {
   return (
       <SidebarProvider>
         <AppSidebar>
-          <div className="space-y-6 p-4 relative z-50">
-            {/* Gesture Controls */}
-            <div className="flex items-center justify-between bg-background/20 backdrop-blur-sm p-3 rounded-lg">
-              <span className="text-sm">Gesture Controls</span>
-              <Switch
-                checked={gesturesEnabled}
-                onCheckedChange={setGesturesEnabled}
-                className="bg-background/50"
-              />
-            </div>
-
-            {/* Theme Color */}
-            <div className="space-y-2 bg-background/20 backdrop-blur-sm p-3 rounded-lg">
-              <span className="text-sm">Theme Color</span>
+          <div className="space-y-4 p-4 relative z-50">
+            {/* Theme Controls Row */}
+            <div className="flex items-center space-x-4 h-10">
               <Select value={themeColor} onValueChange={setThemeColor}>
-                <SelectTrigger className="bg-background/50 backdrop-blur-sm">
-                  <SelectValue placeholder="Select color" />
-                </SelectTrigger>
-                <SelectContent className="bg-background/50 backdrop-blur-sm">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <SelectTrigger className="w-[120px] border-0 bg-transparent">
+                      <SelectValue placeholder="Theme" />
+                    </SelectTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>Change theme color</TooltipContent>
+                </Tooltip>
+                <SelectContent>
                   <SelectItem value="zinc">Zinc</SelectItem>
                   <SelectItem value="red">Red</SelectItem>
                   <SelectItem value="rose">Rose</SelectItem>
@@ -186,101 +182,114 @@ const CalendarApp: React.FC = () => {
                   <SelectItem value="violet">Violet</SelectItem>
                 </SelectContent>
               </Select>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setThemeMode(themeMode === 'light' ? 'dark' : 'light')}
+                    className="h-10 w-10"
+                  >
+                    {themeMode === 'light' ? 
+                      <Sun className="h-4 w-4" /> : 
+                      <Moon className="h-4 w-4" />
+                    }
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Toggle theme mode</TooltipContent>
+              </Tooltip>
             </div>
 
-            {/* Theme Mode */}
-            <div className="flex items-center justify-between bg-background/20 backdrop-blur-sm p-3 rounded-lg">
-              <span className="text-sm">Theme Mode</span>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setThemeMode(themeMode === 'light' ? 'dark' : 'light')}
-                className="bg-background/50 backdrop-blur-sm"
-              >
-                {themeMode === 'light' ? 
-                  <Sun className="h-4 w-4" /> : 
-                  <Moon className="h-4 w-4" />
-                }
-              </Button>
+
+
+            {/* Background Controls */}
+            <div className="flex items-center space-x-4 h-10">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <label className="cursor-pointer">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                    <ImageIcon className="h-4 w-4" />
+                  </label>
+                </TooltipTrigger>
+                <TooltipContent>Upload background image</TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setBackgroundImage(null)}
+                    className="h-10 w-10"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Reset background</TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger className="flex-1">
+                  <Slider
+                    value={[backgroundOpacity]}
+                    onValueChange={(value) => setBackgroundOpacity(value[0])}
+                    min={0}
+                    max={1}
+                    step={0.1}
+                    className="w-full"
+                  />
+                </TooltipTrigger>
+                <TooltipContent>Adjust background opacity</TooltipContent>
+              </Tooltip>
+              <span className="text-xs text-muted-foreground w-12 text-right">
+                {(backgroundOpacity * 100).toFixed(0)}%
+              </span>
             </div>
 
-            {/* Calendar Size */}
-            <div className="space-y-2 bg-background/20 backdrop-blur-sm p-3 rounded-lg">
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Calendar Size</span>
-                <span className="text-xs text-muted-foreground">({calendarScale.toFixed(2)})</span>
-              </div>
-              <Slider
-                value={[calendarScale]}
-                onValueChange={(values: number[]) => setCalendarScale(values[0])}
-                min={0.5}
-                max={2}
-                step={0.1}
-                className="w-full"
-              />
-            </div>
+            {/* Text Controls and Print */}
+            <div className="flex items-center space-x-4 h-10">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Select value={textColor} onValueChange={setTextColor}>
+                    <SelectTrigger className="w-[120px] border-0 bg-transparent">
+                      <Type className="h-4 w-4 mr-2" />
+                      <SelectValue placeholder="Text color" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="black">Black</SelectItem>
+                      <SelectItem value="white">White</SelectItem>
+                      <SelectItem value="gray">Gray</SelectItem>
+                      <SelectItem value="red">Red</SelectItem>
+                      <SelectItem value="blue">Blue</SelectItem>
+                      <SelectItem value="green">Green</SelectItem>
+                      <SelectItem value="yellow">Yellow</SelectItem>
+                      <SelectItem value="purple">Purple</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </TooltipTrigger>
+                <TooltipContent>Change text color</TooltipContent>
+              </Tooltip>
 
-            {/* Background Image */}
-            <div className="space-y-2 bg-background/20 backdrop-blur-sm p-3 rounded-lg">
-              <span className="text-sm">Background Image</span>
-              <Input
-                type="file"
-                accept="image/*"
-                onChange={handleFileUpload}
-                className="bg-background/50 backdrop-blur-sm"
-              />
-              <Button 
-                variant="outline"
-                onClick={() => setBackgroundImage(null)}
-                className="w-full bg-background/50 backdrop-blur-sm"
-              >
-                Reset Background
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => reactToPrintFn()}
+                    className="h-10 w-10 ml-auto"
+                  >
+                    <Printer className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Print calendar</TooltipContent>
+              </Tooltip>
             </div>
-
-            {/* Background Opacity */}
-            <div className="space-y-2 bg-background/20 backdrop-blur-sm p-3 rounded-lg">
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Background Opacity</span>
-                <span className="text-xs text-muted-foreground">({backgroundOpacity.toFixed(2)})</span>
-              </div>
-              <Slider
-                value={[backgroundOpacity]}
-                onValueChange={(value) => setBackgroundOpacity(value[0])}
-                min={0}
-                max={1}
-                step={0.1}
-              />
-            </div>
-
-            {/* Text Color */}
-            <div className="space-y-2 bg-background/20 backdrop-blur-sm p-3 rounded-lg">
-              <span className="text-sm">Text Color</span>
-              <Select value={textColor} onValueChange={setTextColor}>
-                <SelectTrigger className="bg-background/50 backdrop-blur-sm">
-                  <SelectValue placeholder="Select text color" />
-                </SelectTrigger>
-                <SelectContent className="bg-background/50 backdrop-blur-sm">
-                  <SelectItem value="black">Black</SelectItem>
-                  <SelectItem value="white">White</SelectItem>
-                  <SelectItem value="gray">Gray</SelectItem>
-                  <SelectItem value="red">Red</SelectItem>
-                  <SelectItem value="blue">Blue</SelectItem>
-                  <SelectItem value="green">Green</SelectItem>
-                  <SelectItem value="yellow">Yellow</SelectItem>
-                  <SelectItem value="purple">Purple</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Print Button */}
-            <Button 
-              variant="outline"
-              onClick={() => reactToPrintFn()}
-              className="w-full bg-background/50 backdrop-blur-sm"
-            >
-              Print Calendar
-            </Button>
           </div>
         </AppSidebar>
 
