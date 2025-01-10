@@ -17,7 +17,8 @@ import {
   Palette,
   Square,
   Check,
-  Layers
+  Layers,
+  CalendarDays
 } from 'lucide-react';
 import {
   SidebarInset,
@@ -480,7 +481,7 @@ const CalendarApp: React.FC = () => {
                   <div className="flex gap-2 bottom-controls">
                     <div className="flex gap-2">
                       <SidebarTrigger className="w-10 h-10 p-0 flex items-center justify-center hover:bg-transparent text-foreground">
-                        <PanelRightClose className="h-4 w-4" />
+                        <CalendarDays className="h-4 w-4" />
                       </SidebarTrigger>
 
                       <Button 
