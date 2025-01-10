@@ -61,6 +61,7 @@ import {
 } from "@/components/ui/popover"
 
 import { NavUser } from "@/components/ui/nav-user"
+import { getContrastColor, themeColorMap } from '@/lib/color-utils';
 
 const CalendarApp: React.FC = () => {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
@@ -174,6 +175,10 @@ const CalendarApp: React.FC = () => {
   const handleDoubleClick = (date: Date) => {
     setSelectedDate(date);
   };
+
+  const autoTextColor = backgroundImage 
+    ? (backgroundOpacity > 0.5 ? '#FFFFFF' : '#000000')
+    : getContrastColor(themeColorMap[themeColor]);
 
   return (
       <SidebarProvider>
@@ -373,7 +378,7 @@ const CalendarApp: React.FC = () => {
               backgroundSize: 'cover',
               backgroundPosition: 'center',
               backgroundAttachment: 'fixed',
-              color: textColor
+              color: textColor || autoTextColor
             }}>
             {/* Background overlay */}
             {backgroundImage && (
@@ -496,7 +501,9 @@ const CalendarApp: React.FC = () => {
 
                     <Button 
                       variant="ghost"
-                      className="w-10 h-10 p-0 hover:bg-transparent text-foreground"
+                      className={`w-10 h-10 p-0 hover:bg-transparent ${
+                        backgroundImage && backgroundOpacity > 0.5 ? 'text-white' : 'text-foreground'
+                      }`}
                     >
                       <Mic className="h-4 w-4" />
                     </Button>

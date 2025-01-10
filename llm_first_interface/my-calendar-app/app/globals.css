@@ -941,3 +941,29 @@ body {
     min-width: 500px;
   }
 }
+
+/* Add smart contrast styles */
+.auto-contrast-text {
+  @apply transition-colors;
+  color: var(--auto-text-color);
+}
+
+.auto-contrast-icon {
+  @apply transition-colors;
+  color: var(--auto-text-color);
+  opacity: 0.8;
+}
+
+.auto-contrast-icon:hover {
+  opacity: 1;
+}
+
+/* Dark overlay text */
+.dark-overlay {
+  --auto-text-color: white;
+}
+
+/* Light background text */
+.light-background {
+  --auto-text-color: black;
+}
