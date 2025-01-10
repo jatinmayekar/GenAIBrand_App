@@ -62,6 +62,7 @@ import {
 
 import { NavUser } from "@/components/ui/nav-user"
 import { getContrastColor, themeColorMap } from '@/lib/color-utils';
+import { AuthorInfo } from "@/components/ui/author-info"
 
 const CalendarApp: React.FC = () => {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
@@ -364,6 +365,9 @@ const CalendarApp: React.FC = () => {
               <TooltipContent side="right">Print calendar</TooltipContent>
             </Tooltip>
 
+            {/* Author Info */}
+            <AuthorInfo />
+
             {/* User Settings */}
             <NavUser />
           </div>
@@ -407,7 +411,7 @@ const CalendarApp: React.FC = () => {
                     month={currentMonth}
                     onMonthChange={setCurrentMonth}
                     className="rounded-md"
-                    showOutsideDays={false}
+                    showOutsideDays={true}
                     disableNavigation={true}
                     classNames={{
                       months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
@@ -422,7 +426,7 @@ const CalendarApp: React.FC = () => {
                       day: "h-full w-full p-2 flex flex-col hover:bg-accent/10 rounded-lg transition-colors",
                       day_selected: "bg-primary/15 hover:bg-primary/20 transition-colors",
                       day_today: "bg-accent/20 ring-2 ring-primary",
-                      day_outside: "text-muted-foreground opacity-50",
+                      day_outside: "opacity-50 pointer-events-none",
                       day_disabled: "text-muted-foreground opacity-50",
                       day_hidden: "invisible",
                     }}
@@ -437,6 +441,10 @@ const CalendarApp: React.FC = () => {
                           } ${
                             date?.toDateString() === new Date().toDateString() 
                               ? 'ring-2 ring-primary' 
+                              : ''
+                          } ${
+                            date?.getMonth() !== currentMonth.getMonth() 
+                              ? 'opacity-50 pointer-events-none'
                               : ''
                           }`}
                           onDoubleClick={() => date && handleDoubleClick(date)}

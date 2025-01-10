@@ -840,7 +840,8 @@ body {
 
 /* Add styles for popover content */
 [data-radix-popper-content-wrapper] [role="dialog"] {
-  @apply bg-transparent border-none shadow-none backdrop-blur-sm;
+  @apply bg-background border shadow-md;
+  backdrop-filter: none !important;
 }
 
 /* Style the horizontal slider in popover */
@@ -966,4 +967,18 @@ body {
 /* Light background text */
 .light-background {
   --auto-text-color: black;
+}
+
+/* Add specific style for author info popover */
+.author-info-popover {
+  background-color: var(--background) !important;
+  backdrop-filter: none !important;
+}
+
+/* Add specific style for author info */
+[data-radix-popper-content-wrapper] .author-info-popover {
+  background-color: hsl(var(--background)) !important;
+  backdrop-filter: none !important;
+  border: 1px solid hsl(var(--border));
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
 }

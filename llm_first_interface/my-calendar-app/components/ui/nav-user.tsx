@@ -1,25 +1,27 @@
 "use client"
 
+import * as React from "react"
 import { 
   User, 
-  LogOut, 
-  Mail, 
-  CreditCard, 
-  Bug, 
-  HelpCircle 
+  Settings, 
+  HelpCircle, 
+  Mail,
+  LogOut,
+  CreditCard,
+  Bug
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu"
 
@@ -31,7 +33,7 @@ export function NavUser() {
           <DropdownMenuTrigger asChild>
             <Button 
               variant="ghost"
-              className="w-10 h-10 p-0 hover:bg-transparent data-[state=open]:bg-accent/50"
+              className="w-10 h-10 p-0 hover:bg-transparent"
             >
               <User className="h-4 w-4" />
               <span className="sr-only">User settings</span>
@@ -40,7 +42,10 @@ export function NavUser() {
         </TooltipTrigger>
         <TooltipContent side="right">User settings</TooltipContent>
       </Tooltip>
-      <DropdownMenuContent side="right" className="w-56">
+      <DropdownMenuContent 
+        side="right" 
+        className="w-56 bg-background/80 backdrop-blur-sm"
+      >
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium">user@example.com</p>
@@ -48,6 +53,10 @@ export function NavUser() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem>
+          <Settings className="mr-2 h-4 w-4" />
+          <span>Settings</span>
+        </DropdownMenuItem>
         <DropdownMenuItem>
           <Mail className="mr-2 h-4 w-4" />
           <span>Change Email</span>
