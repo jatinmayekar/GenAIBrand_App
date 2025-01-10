@@ -855,3 +855,89 @@ body {
 .popover-content .slider-thumb {
   @apply h-4 w-4;
 }
+
+/* Update sidebar styles */
+.sidebar {
+  @apply w-[3.5rem] min-w-[3.5rem] !important;
+}
+
+/* Center buttons in sidebar */
+.sidebar-content {
+  @apply flex flex-col items-center px-0;
+}
+
+.sidebar-content > div {
+  @apply flex flex-col items-center gap-3;
+}
+
+/* Remove any conflicting margin/transform styles */
+.sidebar-content > div {
+  margin: 0;
+  transform: none;
+}
+
+/* Keep button sizing consistent */
+.sidebar-content button,
+.sidebar-content [role="button"] {
+  @apply w-10 h-10 flex items-center justify-center;
+}
+
+/* Remove any horizontal padding */
+.sidebar-content {
+  @apply px-0;
+}
+
+/* Bottom controls styling */
+.bottom-controls button,
+.bottom-controls [role="button"] {
+  @apply w-10 h-10 flex items-center justify-center text-foreground;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.bottom-controls button:hover,
+.bottom-controls [role="button"]:hover {
+  background: var(--accent);
+  opacity: 0.8;
+}
+
+.bottom-controls button svg,
+.bottom-controls [role="button"] svg {
+  @apply h-4 w-4 opacity-80;
+}
+
+.bottom-controls button:hover svg,
+.bottom-controls [role="button"]:hover svg {
+  @apply opacity-100;
+}
+
+/* Style the input in bottom controls */
+.bottom-controls input {
+  @apply bg-transparent border-0 shadow-none;
+}
+
+/* Update bottom controls styling */
+.bottom-controls {
+  @apply flex items-center justify-center gap-2;
+  max-width: 100%;
+}
+
+.bottom-controls input {
+  @apply bg-transparent border-0 shadow-none flex-1;
+  min-width: 300px;
+  max-width: 800px;
+}
+
+/* Add responsive adjustments */
+@media (min-width: 1024px) {
+  .bottom-controls input {
+    min-width: 400px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .bottom-controls input {
+    min-width: 500px;
+  }
+}

@@ -178,7 +178,7 @@ const CalendarApp: React.FC = () => {
   return (
       <SidebarProvider>
         <AppSidebar>
-          <div className="flex flex-col items-center gap-4 p-4 relative z-50">
+          <div className="flex flex-col items-center gap-3 p-2 relative z-50">
             {/* Theme Color */}
             <DropdownMenu>
               <Tooltip>
@@ -463,41 +463,40 @@ const CalendarApp: React.FC = () => {
             {/* Bottom Controls - Updated styling */}
             <div className="relative z-10 w-full">
               <div className="p-4">
-                <div className="mx-auto max-w-lg space-y-4">
-                  <div className="flex gap-2">
-                    <SidebarTrigger className="h-9 w-9 flex items-center justify-center rounded-md border border-input bg-background/50 hover:bg-accent/50 hover:text-accent-foreground backdrop-blur-sm">
-                      <PanelRightClose className="h-4 w-4" />
-                    </SidebarTrigger>
+                <div className="mx-auto max-w-[80%] space-y-4">
+                  <div className="flex gap-2 bottom-controls">
+                    <div className="flex gap-2">
+                      <SidebarTrigger className="w-10 h-10 p-0 flex items-center justify-center hover:bg-transparent text-foreground">
+                        <PanelRightClose className="h-4 w-4" />
+                      </SidebarTrigger>
 
-                    <Button 
-                      variant="outline" 
-                      size="icon"
-                      onClick={handlePreviousMonth}
-                      className="bg-background/50 backdrop-blur-sm hover:bg-accent/50"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
+                      <Button 
+                        variant="ghost"
+                        className="w-10 h-10 p-0 hover:bg-transparent text-foreground"
+                        onClick={handlePreviousMonth}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
 
-                    <Button 
-                      variant="outline" 
-                      size="icon"
-                      onClick={handleNextMonth}
-                      className="bg-background/50 backdrop-blur-sm hover:bg-accent/50"
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
+                      <Button 
+                        variant="ghost"
+                        className="w-10 h-10 p-0 hover:bg-transparent text-foreground"
+                        onClick={handleNextMonth}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
 
                     <Input 
                       placeholder="Type your message..."
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
-                      className="flex-1 bg-background/50 backdrop-blur-sm"
+                      className="flex-1 bg-transparent border-0 shadow-none text-foreground min-w-[300px]"
                     />
 
                     <Button 
-                      variant="outline" 
-                      size="icon"
-                      className="bg-background/50 backdrop-blur-sm hover:bg-accent/50"
+                      variant="ghost"
+                      className="w-10 h-10 p-0 hover:bg-transparent text-foreground"
                     >
                       <Mic className="h-4 w-4" />
                     </Button>
