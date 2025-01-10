@@ -813,3 +813,45 @@ body {
 [role="menuitem"]:hover .text-white {
   @apply opacity-100;
 }
+
+/* Update the checkmark styles for text color selector */
+[role="menuitem"] .text-black {
+  @apply opacity-90;
+}
+
+[role="menuitem"]:hover .text-black {
+  @apply opacity-100;
+}
+
+/* Add vertical slider styles */
+[role="slider"][data-orientation="vertical"] {
+  @apply h-full w-2;
+}
+
+/* Style the slider track */
+[data-orientation="vertical"] .slider-track {
+  @apply w-2 rounded-full;
+}
+
+/* Style the slider thumb */
+[data-orientation="vertical"] .slider-thumb {
+  @apply w-4 h-4;
+}
+
+/* Add styles for popover content */
+[data-radix-popper-content-wrapper] [role="dialog"] {
+  @apply bg-transparent border-none shadow-none backdrop-blur-sm;
+}
+
+/* Style the horizontal slider in popover */
+.popover-content .slider {
+  @apply h-2;
+}
+
+.popover-content .slider-track {
+  @apply h-2 rounded-full;
+}
+
+.popover-content .slider-thumb {
+  @apply h-4 w-4;
+}

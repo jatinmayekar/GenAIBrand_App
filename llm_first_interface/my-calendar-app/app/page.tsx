@@ -16,7 +16,8 @@ import {
   Type,
   Palette,
   Square,
-  Check
+  Check,
+  Layers
 } from 'lucide-react';
 import {
   SidebarInset,
@@ -52,6 +53,14 @@ import {
   DropdownMenuTrigger,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu"
+
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+
+import { NavUser } from "@/components/ui/nav-user"
 
 const CalendarApp: React.FC = () => {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
@@ -169,177 +178,189 @@ const CalendarApp: React.FC = () => {
   return (
       <SidebarProvider>
         <AppSidebar>
-          <div className="space-y-4 p-4 relative z-50">
-            {/* Theme Controls Row */}
-            <div className="flex items-center space-x-4 h-10">
-              <DropdownMenu>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <DropdownMenuTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        className="w-10 h-10 p-0 hover:bg-transparent"
-                      >
-                        <Palette className="h-4 w-4" />
-                        <span className="sr-only">Change theme color</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                  </TooltipTrigger>
-                  <TooltipContent>Change theme color</TooltipContent>
-                </Tooltip>
-                <DropdownMenuContent className="min-w-0 w-[120px] p-1">
-                  <div className="grid grid-cols-4 gap-1">
-                    {[
-                      { value: "zinc", color: "bg-zinc-500" },
-                      { value: "red", color: "bg-red-500" },
-                      { value: "rose", color: "bg-rose-500" },
-                      { value: "orange", color: "bg-orange-500" },
-                      { value: "green", color: "bg-green-500" },
-                      { value: "blue", color: "bg-blue-500" },
-                      { value: "yellow", color: "bg-yellow-500" },
-                      { value: "violet", color: "bg-violet-500" },
-                    ].map((item) => (
-                      <DropdownMenuItem
-                        key={item.value}
-                        className="p-0 m-0 h-6 w-6 focus:bg-transparent relative"
-                        onClick={() => setThemeColor(item.value as any)}
-                      >
-                        <div className={`w-6 h-6 rounded-sm ${item.color} hover:opacity-80 transition-opacity flex items-center justify-center`}>
-                          {themeColor === item.value && (
-                            <Check className="h-3 w-3 text-white" />
-                          )}
-                        </div>
-                      </DropdownMenuItem>
-                    ))}
-                  </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
+          <div className="flex flex-col items-center gap-4 p-4 relative z-50">
+            {/* Theme Color */}
+            <DropdownMenu>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setThemeMode(themeMode === 'light' ? 'dark' : 'light')}
-                    className="h-10 w-10"
-                  >
-                    {themeMode === 'light' ? 
-                      <Sun className="h-4 w-4" /> : 
-                      <Moon className="h-4 w-4" />
-                    }
-                  </Button>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      className="w-10 h-10 p-0 hover:bg-transparent"
+                    >
+                      <Palette className="h-4 w-4" />
+                      <span className="sr-only">Change theme color</span>
+                    </Button>
+                  </DropdownMenuTrigger>
                 </TooltipTrigger>
-                <TooltipContent>Toggle theme mode</TooltipContent>
+                <TooltipContent side="right">Change theme color</TooltipContent>
               </Tooltip>
-            </div>
+              <DropdownMenuContent className="min-w-0 w-[120px] p-1">
+                <div className="grid grid-cols-4 gap-1">
+                  {[
+                    { value: "zinc", color: "bg-zinc-500" },
+                    { value: "red", color: "bg-red-500" },
+                    { value: "rose", color: "bg-rose-500" },
+                    { value: "orange", color: "bg-orange-500" },
+                    { value: "green", color: "bg-green-500" },
+                    { value: "blue", color: "bg-blue-500" },
+                    { value: "yellow", color: "bg-yellow-500" },
+                    { value: "violet", color: "bg-violet-500" },
+                  ].map((item) => (
+                    <DropdownMenuItem
+                      key={item.value}
+                      className="p-0 m-0 h-6 w-6 focus:bg-transparent relative"
+                      onClick={() => setThemeColor(item.value as any)}
+                    >
+                      <div className={`w-6 h-6 rounded-sm ${item.color} hover:opacity-80 transition-opacity flex items-center justify-center`}>
+                        {themeColor === item.value && (
+                          <Check className="h-3 w-3 text-white" />
+                        )}
+                      </div>
+                    </DropdownMenuItem>
+                  ))}
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
+            {/* Theme Mode */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setThemeMode(themeMode === 'light' ? 'dark' : 'light')}
+                  className="h-10 w-10"
+                >
+                  {themeMode === 'light' ? 
+                    <Sun className="h-4 w-4" /> : 
+                    <Moon className="h-4 w-4" />
+                  }
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">Toggle theme mode</TooltipContent>
+            </Tooltip>
 
-
-            {/* Background Controls */}
-            <div className="flex items-center space-x-4 h-10">
+            {/* Text Color */}
+            <DropdownMenu>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <label className="cursor-pointer">
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileUpload}
-                      className="hidden"
-                    />
-                    <ImageIcon className="h-4 w-4" />
-                  </label>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      className="w-10 h-10 p-0 hover:bg-transparent"
+                    >
+                      <Type className="h-4 w-4" />
+                      <span className="sr-only">Change text color</span>
+                    </Button>
+                  </DropdownMenuTrigger>
                 </TooltipTrigger>
-                <TooltipContent>Upload background image</TooltipContent>
+                <TooltipContent side="right">Change text color</TooltipContent>
               </Tooltip>
+              <DropdownMenuContent className="min-w-0 w-[120px] p-1">
+                <div className="grid grid-cols-4 gap-1">
+                  {[
+                    { value: "black", color: "bg-black" },
+                    { value: "white", color: "bg-white border border-gray-200" },
+                    { value: "gray", color: "bg-gray-500" },
+                    { value: "red", color: "bg-red-500" },
+                    { value: "blue", color: "bg-blue-500" },
+                    { value: "green", color: "bg-green-500" },
+                    { value: "yellow", color: "bg-yellow-500" },
+                    { value: "purple", color: "bg-purple-500" },
+                  ].map((item) => (
+                    <DropdownMenuItem
+                      key={item.value}
+                      className="p-0 m-0 h-6 w-6 focus:bg-transparent relative"
+                      onClick={() => setTextColor(item.value)}
+                    >
+                      <div className={`w-6 h-6 rounded-sm ${item.color} hover:opacity-80 transition-opacity flex items-center justify-center`}>
+                        {textColor === item.value && (
+                          <Check className={`h-3 w-3 ${item.value === 'white' ? 'text-black' : 'text-white'}`} />
+                        )}
+                      </div>
+                    </DropdownMenuItem>
+                  ))}
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setBackgroundImage(null)}
-                    className="h-10 w-10"
-                  >
-                    <RotateCcw className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Reset background</TooltipContent>
-              </Tooltip>
-
-              <Tooltip>
-                <TooltipTrigger className="flex-1">
-                  <Slider
-                    value={[backgroundOpacity]}
-                    onValueChange={(value) => setBackgroundOpacity(value[0])}
-                    min={0}
-                    max={1}
-                    step={0.1}
-                    className="w-full"
+            {/* Background Image Upload */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <label className="cursor-pointer w-10 h-10 flex items-center justify-center">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                    className="hidden"
                   />
-                </TooltipTrigger>
-                <TooltipContent>Adjust background opacity</TooltipContent>
-              </Tooltip>
-              <span className="text-xs text-muted-foreground w-12 text-right">
-                {(backgroundOpacity * 100).toFixed(0)}%
-              </span>
-            </div>
+                  <ImageIcon className="h-4 w-4" />
+                </label>
+              </TooltipTrigger>
+              <TooltipContent side="right">Upload background image</TooltipContent>
+            </Tooltip>
 
-            {/* Text Controls and Print */}
-            <div className="flex items-center space-x-4 h-10">
-              <Select value={textColor} onValueChange={setTextColor}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <SelectTrigger className="w-[120px] border-0 bg-transparent">
-                      <Type className="h-4 w-4 mr-2" />
-                      <SelectValue>
-                        <div className="w-4 h-4 rounded-sm" style={{ backgroundColor: textColor }} />
-                      </SelectValue>
-                    </SelectTrigger>
-                  </TooltipTrigger>
-                  <TooltipContent>Change text color</TooltipContent>
-                </Tooltip>
-                <SelectContent>
-                  <SelectItem value="black">
-                    <div className="w-4 h-4 rounded-sm bg-black" />
-                  </SelectItem>
-                  <SelectItem value="white">
-                    <div className="w-4 h-4 rounded-sm bg-white border border-gray-200" />
-                  </SelectItem>
-                  <SelectItem value="gray">
-                    <div className="w-4 h-4 rounded-sm bg-gray-500" />
-                  </SelectItem>
-                  <SelectItem value="red">
-                    <div className="w-4 h-4 rounded-sm bg-red-500" />
-                  </SelectItem>
-                  <SelectItem value="blue">
-                    <div className="w-4 h-4 rounded-sm bg-blue-500" />
-                  </SelectItem>
-                  <SelectItem value="green">
-                    <div className="w-4 h-4 rounded-sm bg-green-500" />
-                  </SelectItem>
-                  <SelectItem value="yellow">
-                    <div className="w-4 h-4 rounded-sm bg-yellow-500" />
-                  </SelectItem>
-                  <SelectItem value="purple">
-                    <div className="w-4 h-4 rounded-sm bg-purple-500" />
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+            {/* Reset Background */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setBackgroundImage(null)}
+                  className="h-10 w-10"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">Reset background</TooltipContent>
+            </Tooltip>
 
+            {/* Background Opacity */}
+            <Popover>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button 
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => reactToPrintFn()}
-                    className="h-10 w-10 ml-auto"
-                  >
-                    <Printer className="h-4 w-4" />
-                  </Button>
+                  <PopoverTrigger asChild>
+                    <Button 
+                      variant="ghost"
+                      className="w-10 h-10 p-0 hover:bg-transparent"
+                    >
+                      <Layers className="h-4 w-4" />
+                      <span className="sr-only">Adjust opacity</span>
+                    </Button>
+                  </PopoverTrigger>
                 </TooltipTrigger>
-                <TooltipContent>Print calendar</TooltipContent>
+                <TooltipContent side="right">Adjust background opacity</TooltipContent>
               </Tooltip>
-            </div>
+              <PopoverContent className="w-40 p-2" side="right">
+                <Slider
+                  value={[backgroundOpacity]}
+                  onValueChange={(value) => setBackgroundOpacity(value[0])}
+                  min={0}
+                  max={1}
+                  step={0.1}
+                  className="w-full"
+                />
+              </PopoverContent>
+            </Popover>
+
+            {/* Print Button */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => reactToPrintFn()}
+                  className="h-10 w-10"
+                >
+                  <Printer className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">Print calendar</TooltipContent>
+            </Tooltip>
+
+            {/* User Settings */}
+            <NavUser />
           </div>
         </AppSidebar>
 
