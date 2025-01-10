@@ -387,13 +387,13 @@ const CalendarApp: React.FC = () => {
             )}
 
             {/* Calendar content */}
-            <div className="relative z-10 w-full flex-1">
-              {/* Calendar Container */}
+            <div className="relative z-10 w-full flex-1 flex flex-col items-center justify-center -mt-12">
+              {/* Calendar Container with adjusted vertical spacing */}
               <div className="w-full flex justify-center">
                 <div 
                   onTouchStart={handleTouchStart}
                   onTouchEnd={handleTouchEnd}
-                  className="w-full"
+                  className="w-full max-w-[90%]"
                 >
                   <Calendar
                     mode="single"
@@ -407,10 +407,10 @@ const CalendarApp: React.FC = () => {
                     classNames={{
                       months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
                       month: "space-y-4 w-full",
-                      caption: "flex justify-center pt-1 relative items-center mb-4",
+                      caption: "flex justify-center pt-6 relative items-center",
                       caption_label: "text-xl font-bold",
                       table: "w-full border-collapse",
-                      head_row: "flex",
+                      head_row: "flex mt-6",
                       head_cell: "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem] flex-1 text-left pl-2",
                       row: "flex w-full mt-2",
                       cell: "h-24 w-32 relative p-0 text-left text-sm flex-1",
